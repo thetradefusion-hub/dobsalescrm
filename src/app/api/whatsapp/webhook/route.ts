@@ -5,6 +5,7 @@ import { getMediaUrl, downloadMedia } from '@/lib/whatsapp/meta-api'
 import { normalizePhone, phonesMatch } from '@/lib/whatsapp/phone-utils'
 import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
 import { runAutomationsForTrigger } from '@/lib/automations/engine'
+import { tryGlobalAiAutoReply } from '@/lib/ai/run-reply'
 
 // Lazy-initialized to avoid build-time crash when env vars are missing
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -482,6 +483,15 @@ async function processMessage(
       },
     }).catch((err) => console.error('[automations] dispatch failed:', err))
   }
+
+  // Optional global AI auto-reply (Settings → AI). Runs after automations
+  // so fixed automations fire first; skip if assigned when configured.
+  tryGlobalAiAutoReply({
+    userId,
+    contactId: contactRecord.id,
+    conversationId: conversation.id,
+    inboundText,
+  }).catch((err) => console.error('[ai] auto-reply failed:', err))
 }
 
 async function parseMessageContent(

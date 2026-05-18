@@ -43,6 +43,7 @@ import { cn } from "@/lib/utils"
 
 const TEMPLATE_ORDER: TemplateSlug[] = [
   "welcome_message",
+  "ai_smart_reply",
   "out_of_office",
   "lead_qualifier",
   "follow_up_reminder",
@@ -50,6 +51,7 @@ const TEMPLATE_ORDER: TemplateSlug[] = [
 
 const TEMPLATE_ICON: Record<TemplateSlug, typeof Zap> = {
   welcome_message: MessageCircle,
+  ai_smart_reply: Zap,
   out_of_office: Clock,
   lead_qualifier: Users,
   follow_up_reminder: PhoneCall,

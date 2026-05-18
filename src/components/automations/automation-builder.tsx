@@ -20,6 +20,7 @@ import {
   GitBranch,
   Webhook,
   CircleSlash,
+  Bot,
   Zap,
   Loader2,
   ArrowDown,
@@ -78,6 +79,7 @@ interface StepMeta {
 
 const STEP_META: Record<AutomationStepType, StepMeta> = {
   send_message: { label: "Send Message", icon: MessageSquare, border: "border-l-violet-500" },
+  ai_reply: { label: "AI Reply", icon: Bot, border: "border-l-emerald-500" },
   send_template: { label: "Send Template", icon: FileText, border: "border-l-violet-500" },
   add_tag: { label: "Add Tag", icon: Tag, border: "border-l-violet-500" },
   remove_tag: { label: "Remove Tag", icon: TagIcon, border: "border-l-violet-500" },
@@ -92,6 +94,7 @@ const STEP_META: Record<AutomationStepType, StepMeta> = {
 
 const ADDABLE_STEPS: AutomationStepType[] = [
   "send_message",
+  "ai_reply",
   "send_template",
   "add_tag",
   "remove_tag",
@@ -131,6 +134,8 @@ function blankConfig(type: AutomationStepType): Record<string, unknown> {
   switch (type) {
     case "send_message":
       return { text: "" }
+    case "ai_reply":
+      return { system_prompt_override: "" }
     case "send_template":
       return { template_name: "", language: "en_US" }
     case "add_tag":
@@ -722,6 +727,22 @@ function StepEditor({
           />
         </FieldBlock>
       )
+    case "ai_reply":
+      return (
+        <>
+          <p className="mb-2 text-xs text-slate-400">
+            Uses API key and system prompt from Settings → AI. Configure those first.
+          </p>
+          <FieldBlock label="System prompt override (optional)">
+            <Textarea
+              value={(cfg.system_prompt_override as string) ?? ""}
+              onChange={(e) => set({ system_prompt_override: e.target.value })}
+              placeholder="Leave empty to use the global system prompt from Settings → AI"
+              className="min-h-20 bg-slate-800 text-white"
+            />
+          </FieldBlock>
+        </>
+      )
     case "send_template":
       return (
         <>
@@ -949,6 +970,8 @@ function previewFor(step: BuilderStep): string {
   switch (step.step_type) {
     case "send_message":
       return (step.step_config.text as string) || "no text yet"
+    case "ai_reply":
+      return (step.step_config.system_prompt_override as string) || "uses Settings → AI"
     case "send_template":
       return (step.step_config.template_name as string) || "pick a template"
     case "wait":

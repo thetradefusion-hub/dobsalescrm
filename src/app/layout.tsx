@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
+import { BRAND_DESCRIPTION, BRAND_NAME } from "@/lib/brand";
 import "./globals.css";
 
 const inter = Inter({
@@ -10,10 +11,10 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "wacrm",
-    template: "%s — wacrm",
+    default: BRAND_NAME,
+    template: `%s | ${BRAND_NAME}`,
   },
-  description: "Self-hostable CRM template for WhatsApp.",
+  description: BRAND_DESCRIPTION,
   robots: {
     index: false,
     follow: false,

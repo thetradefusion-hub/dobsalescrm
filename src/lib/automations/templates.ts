@@ -10,6 +10,7 @@ export type TemplateSlug =
   | 'out_of_office'
   | 'lead_qualifier'
   | 'follow_up_reminder'
+  | 'ai_smart_reply'
 
 export interface TemplateStepSeed {
   step_type: AutomationStepType
@@ -122,6 +123,20 @@ export const AUTOMATION_TEMPLATES: Record<TemplateSlug, AutomationTemplateDefini
           text:
             "Just circling back — did you have any other questions for us? Happy to help!",
         },
+      },
+    ],
+  },
+  ai_smart_reply: {
+    slug: 'ai_smart_reply',
+    name: 'AI Smart Reply',
+    description:
+      'Reply with ChatGPT or Gemini using your system prompt from Settings → AI.',
+    trigger_type: 'new_message_received',
+    trigger_config: {},
+    steps: [
+      {
+        step_type: 'ai_reply',
+        step_config: {},
       },
     ],
   },

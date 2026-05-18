@@ -9,7 +9,9 @@ import {
 import {
   validateStepsForActivation,
   validateTriggerForActivation,
+  automationUsesAiReply,
 } from '@/lib/automations/validate'
+import { validateAiConfigured } from '@/lib/ai/validate-config'
 
 async function requireUser() {
   const supabase = await createClient()
@@ -101,6 +103,18 @@ export async function PATCH(
         },
         { status: 400 },
       )
+    }
+    if (automationUsesAiReply(mergedSteps)) {
+      const aiIssues = await validateAiConfigured(user.id)
+      if (aiIssues.length > 0) {
+        return NextResponse.json(
+          {
+            error: 'Cannot keep automation active with invalid configuration',
+            issues: aiIssues,
+          },
+          { status: 400 },
+        )
+      }
     }
   }
 

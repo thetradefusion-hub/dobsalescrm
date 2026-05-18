@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { MessageSquare, CheckCircle } from "lucide-react";
+import { BRAND_NAME } from "@/lib/brand";
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState("");
@@ -102,7 +103,7 @@ export default function SignupPage() {
           </div>
           <CardTitle className="text-xl text-white">Create account</CardTitle>
           <CardDescription className="text-slate-400">
-            Get started with CRM Template for WhatsApp
+            Get started with {BRAND_NAME}
           </CardDescription>
         </CardHeader>
         <CardContent>

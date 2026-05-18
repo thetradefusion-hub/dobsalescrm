@@ -17,19 +17,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { formatDealCurrency } from "@/lib/currency";
 
 interface PipelineAnalyticsProps {
   stages: PipelineStage[];
   deals: Deal[];
-}
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
 }
 
 /**
@@ -109,19 +101,19 @@ export function PipelineAnalytics({ stages, deals }: PipelineAnalyticsProps) {
         <Metric
           icon={<DollarSign className="h-4 w-4 text-violet-400" />}
           label="Pipeline Value"
-          value={formatCurrency(stats.totalValue)}
+          value={formatDealCurrency(stats.totalValue)}
           tooltip="Sum of the dollar values of all deals in this pipeline, excluding deals marked as Lost."
         />
         <Metric
           icon={<Target className="h-4 w-4 text-blue-400" />}
           label="Avg Deal Size"
-          value={formatCurrency(stats.avgValue)}
+          value={formatDealCurrency(stats.avgValue)}
           tooltip="Pipeline Value divided by Total Deals — the average value of a single non-lost deal."
         />
         <Metric
           icon={<TrendingUp className="h-4 w-4 text-purple-400" />}
           label="Weighted Value"
-          value={formatCurrency(stats.weightedValue)}
+          value={formatDealCurrency(stats.weightedValue)}
           tooltip="Expected revenue: each open deal's value × its stage probability. First stage ≈ 10%, stages progress up to 90%, Won = 100%. Lost deals are excluded."
         />
         <Metric

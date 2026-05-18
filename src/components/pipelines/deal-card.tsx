@@ -1,6 +1,8 @@
 "use client";
 
 import type { Deal, PipelineStage } from "@/types";
+import { formatDealCurrency } from "@/lib/currency";
+import { LeadTemperatureBadge } from "@/components/pipelines/lead-temperature-badge";
 import { Calendar, Check, X } from "lucide-react";
 
 interface DealCardProps {
@@ -8,15 +10,6 @@ interface DealCardProps {
   stage: PipelineStage | null;
   onEdit: (deal: Deal) => void;
   isOverlay?: boolean;
-}
-
-function formatCurrency(value: number, currency?: string) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency || "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Number(value || 0));
 }
 
 function formatDate(dateStr: string) {
@@ -78,6 +71,12 @@ export function DealCard({ deal, stage, onEdit, isOverlay }: DealCardProps) {
         )}
       </div>
 
+      <LeadTemperatureBadge
+        temperature={deal.lead_temperature}
+        score={deal.lead_score}
+        className="mt-1.5"
+      />
+
       {/* Contact row */}
       <div className="mt-2 flex items-center gap-2">
         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-[10px] font-semibold text-slate-200">
@@ -88,7 +87,7 @@ export function DealCard({ deal, stage, onEdit, isOverlay }: DealCardProps) {
 
       <div className="mt-2 flex items-center justify-between">
         <span className="text-sm font-bold text-violet-400">
-          {formatCurrency(deal.value, deal.currency)}
+          {formatDealCurrency(Number(deal.value || 0), deal.currency)}
         </span>
         {deal.expected_close_date && (
           <span className="flex items-center gap-1 text-[11px] text-slate-500">

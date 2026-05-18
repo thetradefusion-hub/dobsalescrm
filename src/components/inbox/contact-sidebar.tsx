@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { formatDealCurrency } from "@/lib/currency";
+import { LeadTemperatureBadge } from "@/components/pipelines/lead-temperature-badge";
 import type { Contact, Deal, ContactNote, Tag } from "@/types";
 import {
   Phone,
@@ -220,10 +222,14 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
                     <p className="text-sm font-medium text-white">
                       {deal.title}
                     </p>
+                    <LeadTemperatureBadge
+                      temperature={deal.lead_temperature}
+                      score={deal.lead_score}
+                      className="mt-1"
+                    />
                     <div className="mt-1 flex items-center justify-between text-xs text-slate-400">
                       <span>
-                        {deal.currency ?? "$"}
-                        {deal.value.toLocaleString()}
+                        {formatDealCurrency(Number(deal.value || 0), deal.currency)}
                       </span>
                       {deal.stage && (
                         <span

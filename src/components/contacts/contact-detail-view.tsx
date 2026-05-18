@@ -30,8 +30,9 @@ import {
   Trash2,
   Save,
   X,
-  DollarSign,
 } from 'lucide-react';
+import { formatDealCurrency } from '@/lib/currency';
+import { LeadTemperatureBadge } from '@/components/pipelines/lead-temperature-badge';
 
 interface ContactDetailViewProps {
   open: boolean;
@@ -650,14 +651,14 @@ export function ContactDetailView({
                             </span>
                           )}
                         </div>
+                        <LeadTemperatureBadge
+                          temperature={deal.lead_temperature}
+                          score={deal.lead_score}
+                          className="mt-1.5"
+                        />
                         <div className="mt-1.5 flex items-center justify-between text-xs text-slate-400">
                           <span className="flex items-center gap-1">
-                            <DollarSign className="size-3" />
-                            {new Intl.NumberFormat('en-US', {
-                              style: 'currency',
-                              currency: deal.currency || 'USD',
-                              maximumFractionDigits: 0,
-                            }).format(Number(deal.value || 0))}
+                            {formatDealCurrency(Number(deal.value || 0), deal.currency)}
                           </span>
                           {deal.status && deal.status !== 'open' && (
                             <span

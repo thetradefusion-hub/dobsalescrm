@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { BRAND_NAME } from "@/lib/brand";
 import { useAuth } from "@/hooks/use-auth";
 import { useTotalUnread } from "@/hooks/use-total-unread";
 import {
@@ -114,8 +115,8 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500">
               <MessageSquare className="h-4 w-4 text-white" />
             </div>
-            <span className="text-sm font-semibold text-white">
-              CRM Template for WhatsApp
+            <span className="max-w-[9.5rem] text-xs font-semibold leading-snug text-white">
+              {BRAND_NAME}
             </span>
           </Link>
           <button

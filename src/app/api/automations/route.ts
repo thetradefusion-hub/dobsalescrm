@@ -6,7 +6,9 @@ import { insertSteps, type BuilderStepInput } from '@/lib/automations/steps-tree
 import {
   validateStepsForActivation,
   validateTriggerForActivation,
+  automationUsesAiReply,
 } from '@/lib/automations/validate'
+import { validateAiConfigured } from '@/lib/ai/validate-config'
 
 export async function GET() {
   const supabase = await createClient()
@@ -75,6 +77,15 @@ export async function POST(request: Request) {
         { error: 'Cannot activate automation with invalid configuration', issues },
         { status: 400 },
       )
+    }
+    if (automationUsesAiReply((effectiveSteps ?? []) as Parameters<typeof automationUsesAiReply>[0])) {
+      const aiIssues = await validateAiConfigured(user.id)
+      if (aiIssues.length > 0) {
+        return NextResponse.json(
+          { error: 'Cannot activate automation with invalid configuration', issues: aiIssues },
+          { status: 400 },
+        )
+      }
     }
   }
 

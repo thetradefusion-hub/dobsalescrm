@@ -13,9 +13,12 @@ import type {
   WaitStepConfig,
   CreateDealStepConfig,
   AssignConversationStepConfig,
+  AiReplyStepConfig,
 } from '@/types'
 import { supabaseAdmin } from './admin-client'
 import { engineSendText, engineSendTemplate } from './meta-send'
+import { runAiReply } from '@/lib/ai/run-reply'
+import { DEFAULT_DEAL_CURRENCY } from '@/lib/currency'
 
 // ------------------------------------------------------------
 // Public API
@@ -298,6 +301,20 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
   const db = supabaseAdmin()
 
   switch (step.step_type) {
+    case 'ai_reply': {
+      if (!args.contactId) throw new Error('ai_reply needs a contact')
+      const cfg = step.step_config as AiReplyStepConfig
+      const conversationId = await resolveConversationId(args)
+      const reply = await runAiReply({
+        userId: args.automation.user_id,
+        contactId: args.contactId,
+        conversationId,
+        inboundText: args.context.message_text,
+        systemPromptOverride: cfg.system_prompt_override,
+      })
+      return `AI reply sent (${reply.slice(0, 80)}${reply.length > 80 ? '…' : ''})`
+    }
+
     case 'send_message': {
       const cfg = step.step_config as SendMessageStepConfig
       if (!args.contactId) throw new Error('send_message needs a contact')
@@ -415,6 +432,7 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
         contact_id: args.contactId,
         title: interpolate(cfg.title, args),
         value: cfg.value ?? 0,
+        currency: DEFAULT_DEAL_CURRENCY,
         status: 'open',
       })
       return 'deal created'

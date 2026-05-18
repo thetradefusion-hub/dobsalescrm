@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
+import { BRAND_NAME } from "@/lib/brand";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -52,7 +53,7 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-xl text-white">Welcome back</CardTitle>
           <CardDescription className="text-slate-400">
-            Sign in to your account
+            Sign in to {BRAND_NAME}
           </CardDescription>
         </CardHeader>
         <CardContent>

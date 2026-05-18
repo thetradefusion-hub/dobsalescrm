@@ -154,6 +154,10 @@ export interface Deal {
   notes?: string;
   expected_close_date?: string;
   status?: DealStatus;
+  lead_temperature?: 'hot' | 'warm' | 'cold' | null;
+  lead_score?: number | null;
+  qualified_at?: string | null;
+  lead_budget_inr?: number | null;
   created_at: string;
   updated_at?: string;
   contact?: Contact;
@@ -224,6 +228,7 @@ export type AutomationTriggerType =
 export type AutomationStepType =
   | 'send_message'
   | 'send_template'
+  | 'ai_reply'
   | 'add_tag'
   | 'remove_tag'
   | 'assign_conversation'
@@ -233,6 +238,24 @@ export type AutomationStepType =
   | 'condition'
   | 'send_webhook'
   | 'close_conversation';
+
+export type AiProvider = 'openai' | 'gemini';
+
+export interface AiConfig {
+  id: string;
+  user_id: string;
+  provider: AiProvider;
+  model: string;
+  system_prompt: string;
+  auto_reply_enabled: boolean;
+  skip_if_assigned: boolean;
+  max_history_messages: number;
+  lead_sync_enabled: boolean;
+  lead_pipeline_id?: string | null;
+  lead_stage_id?: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export type AutomationLogStatus = 'success' | 'partial' | 'failed';
 
@@ -261,6 +284,11 @@ export type AutomationTriggerConfig =
 
 export interface SendMessageStepConfig {
   text: string;
+}
+
+/** Uses global AI settings; optional per-step system prompt override. */
+export interface AiReplyStepConfig {
+  system_prompt_override?: string;
 }
 
 export interface SendTemplateStepConfig {
@@ -317,6 +345,7 @@ export interface SendWebhookStepConfig {
 
 export type AutomationStepConfig =
   | SendMessageStepConfig
+  | AiReplyStepConfig
   | SendTemplateStepConfig
   | TagStepConfig
   | AssignConversationStepConfig

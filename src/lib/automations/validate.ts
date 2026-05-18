@@ -58,6 +58,9 @@ function validateOne(step: StepLike, path: string, issues: ValidationIssue[]): v
         issues.push({ path: `${path}.text`, message: 'message text is required' })
       }
       break
+    case 'ai_reply':
+      // API key + global config validated at activation time via validateAiConfigured.
+      break
     case 'send_template':
       if (!nonEmpty(c.template_name)) {
         issues.push({ path: `${path}.template_name`, message: 'template name is required' })
@@ -175,4 +178,18 @@ export function validateTriggerForActivation(
 
 function nonEmpty(v: unknown): boolean {
   return typeof v === 'string' && v.trim().length > 0
+}
+
+/** Returns true if any step (including condition branches) is ai_reply. */
+export function automationUsesAiReply(
+  steps: { step_type: string; branches?: { yes?: StepLike[]; no?: StepLike[] } }[],
+): boolean {
+  for (const s of steps) {
+    if (s.step_type === 'ai_reply') return true
+    if (s.step_type === 'condition' && s.branches) {
+      if (s.branches.yes && automationUsesAiReply(s.branches.yes)) return true
+      if (s.branches.no && automationUsesAiReply(s.branches.no)) return true
+    }
+  }
+  return false
 }
