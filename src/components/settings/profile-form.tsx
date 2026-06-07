@@ -210,10 +210,10 @@ export function ProfileForm() {
     : '—';
 
   return (
-    <Card className="bg-slate-900/40 border-slate-800">
+    <Card className="bg-wa-panel/40 border-wa-border">
       <CardHeader>
-        <CardTitle className="text-white">Profile</CardTitle>
-        <CardDescription className="text-slate-400">
+        <CardTitle className="text-wa-text">Profile</CardTitle>
+        <CardDescription className="text-wa-muted">
           How you show up across the app. Your avatar and name appear in the
           header, sidebar, and anywhere your teammates see you.
         </CardDescription>
@@ -227,7 +227,7 @@ export function ProfileForm() {
               {currentAvatar ? (
                 <AvatarImage src={currentAvatar} alt={fullName || 'Avatar'} />
               ) : null}
-              <AvatarFallback className="bg-violet-500/10 text-base text-violet-400">
+              <AvatarFallback className="bg-wa-green/10 text-base text-wa-green">
                 {initial}
               </AvatarFallback>
             </Avatar>
@@ -255,13 +255,13 @@ export function ProfileForm() {
                   variant="ghost"
                   onClick={onRemoveAvatar}
                   disabled={saving}
-                  className="text-slate-400 hover:text-white"
+                  className="text-wa-muted hover:text-wa-text"
                 >
                   <Trash2 className="size-4" />
                   Remove
                 </Button>
               )}
-              <p className="w-full text-xs text-slate-500">
+              <p className="w-full text-xs text-wa-muted/80">
                 PNG, JPG, WebP, or GIF. Up to 2 MB.
               </p>
             </div>
@@ -269,7 +269,7 @@ export function ProfileForm() {
 
           {/* Name */}
           <div className="space-y-2">
-            <Label htmlFor="profile-full-name" className="text-slate-200">
+            <Label htmlFor="profile-full-name" className="text-wa-text">
               Display name
             </Label>
             <Input
@@ -285,7 +285,7 @@ export function ProfileForm() {
 
           {/* Email */}
           <div className="space-y-2">
-            <Label htmlFor="profile-email" className="text-slate-200">
+            <Label htmlFor="profile-email" className="text-wa-text">
               Email
             </Label>
             <Input
@@ -297,7 +297,7 @@ export function ProfileForm() {
               required
             />
             {emailChangePending && (
-              <p className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-300">
+              <p className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
                 <Mail className="mt-0.5 size-3.5 shrink-0" />
                 <span>
                   Check the inbox for <strong>{profile?.email}</strong> and{' '}
@@ -309,24 +309,24 @@ export function ProfileForm() {
           </div>
 
           {/* Read-only block */}
-          <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <div className="rounded-lg border border-wa-border bg-wa-panel/60 p-4">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-wa-muted/80">
               Account details
             </p>
             <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-slate-500">Role</dt>
-                <dd className="mt-0.5 font-mono text-slate-200">
+                <dt className="text-wa-muted/80">Role</dt>
+                <dd className="mt-0.5 font-mono text-wa-text">
                   {profile?.role ?? 'user'}
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-500">Joined</dt>
-                <dd className="mt-0.5 text-slate-200">{joined}</dd>
+                <dt className="text-wa-muted/80">Joined</dt>
+                <dd className="mt-0.5 text-wa-text">{joined}</dd>
               </div>
               <div className="sm:col-span-2">
-                <dt className="text-slate-500">User ID</dt>
-                <dd className="mt-0.5 break-all font-mono text-xs text-slate-400">
+                <dt className="text-wa-muted/80">User ID</dt>
+                <dd className="mt-0.5 break-all font-mono text-xs text-wa-muted">
                   {user?.id ?? '—'}
                 </dd>
               </div>
@@ -334,7 +334,7 @@ export function ProfileForm() {
           </div>
 
           {!profile && (
-            <p className="flex items-center gap-2 text-sm text-slate-400">
+            <p className="flex items-center gap-2 text-sm text-wa-muted">
               <CircleAlert className="size-4" />
               Loading your profile…
             </p>

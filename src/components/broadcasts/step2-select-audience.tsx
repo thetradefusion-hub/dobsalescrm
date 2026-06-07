@@ -249,8 +249,8 @@ export function Step2SelectAudience({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-white">Select Audience</h2>
-        <p className="mt-1 text-sm text-slate-400">
+        <h2 className="text-lg font-semibold text-wa-text">Select Audience</h2>
+        <p className="mt-1 text-sm text-wa-muted">
           Choose who will receive this broadcast.
         </p>
       </div>
@@ -279,22 +279,22 @@ export function Step2SelectAudience({
               }
               className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all ${
                 isSelected
-                  ? 'border-violet-500 bg-violet-500/5 ring-1 ring-violet-500/30'
-                  : 'border-slate-800 bg-slate-900/50 hover:border-slate-700'
+                  ? 'border-wa-green bg-wa-green/5 ring-1 ring-wa-green/30'
+                  : 'border-wa-border bg-wa-panel/50 hover:border-wa-border'
               }`}
             >
               <div
                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
                   isSelected
-                    ? 'bg-violet-500/10 text-violet-400'
-                    : 'bg-slate-800 text-slate-400'
+                    ? 'bg-wa-green/10 text-wa-green'
+                    : 'bg-wa-surface text-wa-muted'
                 }`}
               >
                 <Icon className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-sm font-medium text-white">{option.label}</p>
-                <p className="mt-0.5 text-xs text-slate-400">
+                <p className="text-sm font-medium text-wa-text">{option.label}</p>
+                <p className="mt-0.5 text-xs text-wa-muted">
                   {option.description}
                 </p>
               </div>
@@ -304,12 +304,12 @@ export function Step2SelectAudience({
       </div>
 
       {audience.type === 'tags' && (
-        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
-          <p className="mb-3 text-sm font-medium text-white">Select Tags</p>
+        <div className="rounded-xl border border-wa-border bg-wa-panel/50 p-4">
+          <p className="mb-3 text-sm font-medium text-wa-text">Select Tags</p>
           {loadingTags ? (
-            <Loader2 className="h-5 w-5 animate-spin text-violet-500" />
+            <Loader2 className="h-5 w-5 animate-spin text-wa-green" />
           ) : tags.length === 0 ? (
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-wa-muted">
               No tags found. Create tags in Settings.
             </p>
           ) : (
@@ -322,8 +322,8 @@ export function Step2SelectAudience({
                     onClick={() => toggleTag(tag.id)}
                     className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-all ${
                       isSelected
-                        ? 'border-violet-500/30 bg-violet-500/10 text-violet-400'
-                        : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600'
+                        ? 'border-wa-green/30 bg-wa-green/10 text-wa-green'
+                        : 'border-wa-border bg-wa-surface text-wa-text/90 hover:border-wa-border'
                     }`}
                   >
                     <span
@@ -340,12 +340,12 @@ export function Step2SelectAudience({
       )}
 
       {audience.type === 'custom_field' && (
-        <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-900/50 p-4">
-          <p className="text-sm font-medium text-white">Custom Field Filter</p>
+        <div className="space-y-3 rounded-xl border border-wa-border bg-wa-panel/50 p-4">
+          <p className="text-sm font-medium text-wa-text">Custom Field Filter</p>
           {loadingFields ? (
-            <Loader2 className="h-5 w-5 animate-spin text-violet-500" />
+            <Loader2 className="h-5 w-5 animate-spin text-wa-green" />
           ) : customFields.length === 0 ? (
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-wa-muted">
               No custom fields defined. Create one in Settings → Custom Fields.
             </p>
           ) : (
@@ -353,7 +353,7 @@ export function Step2SelectAudience({
               <select
                 value={audience.customField?.fieldId ?? ''}
                 onChange={(e) => updateCustomField({ fieldId: e.target.value })}
-                className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-2.5 text-sm text-white outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                className="h-9 rounded-lg border border-wa-border bg-wa-surface px-2.5 text-sm text-wa-text outline-none focus:border-wa-green focus:ring-1 focus:ring-wa-green"
               >
                 <option value="">Select field…</option>
                 {customFields.map((f) => (
@@ -369,7 +369,7 @@ export function Step2SelectAudience({
                     operator: e.target.value as CustomFieldOperator,
                   })
                 }
-                className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-2.5 text-sm text-white outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                className="h-9 rounded-lg border border-wa-border bg-wa-surface px-2.5 text-sm text-wa-text outline-none focus:border-wa-green focus:ring-1 focus:ring-wa-green"
               >
                 {OPERATOR_OPTIONS.map((op) => (
                   <option key={op.value} value={op.value}>
@@ -382,7 +382,7 @@ export function Step2SelectAudience({
                 value={audience.customField?.value ?? ''}
                 onChange={(e) => updateCustomField({ value: e.target.value })}
                 placeholder="Value"
-                className="h-9 rounded-lg border border-slate-700 bg-slate-800 px-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                className="h-9 rounded-lg border border-wa-border bg-wa-surface px-2.5 text-sm text-wa-text outline-none placeholder:text-wa-muted/80 focus:border-wa-green focus:ring-1 focus:ring-wa-green"
               />
             </div>
           )}
@@ -390,16 +390,16 @@ export function Step2SelectAudience({
       )}
 
       {/* Exclude list — applies regardless of audience type */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+      <div className="rounded-xl border border-wa-border bg-wa-panel/50 p-4">
         <div className="mb-3 flex items-center gap-2">
           <X className="h-4 w-4 text-red-400" />
-          <p className="text-sm font-medium text-white">
+          <p className="text-sm font-medium text-wa-text">
             Exclude contacts with these tags
           </p>
-          <span className="text-xs text-slate-500">(optional)</span>
+          <span className="text-xs text-wa-muted/80">(optional)</span>
         </div>
         {tags.length === 0 ? (
-          <p className="text-xs text-slate-500">No tags available.</p>
+          <p className="text-xs text-wa-muted/80">No tags available.</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {tags.map((tag) => {
@@ -411,7 +411,7 @@ export function Step2SelectAudience({
                   className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-all ${
                     isExcluded
                       ? 'border-red-500/30 bg-red-500/10 text-red-300'
-                      : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600'
+                      : 'border-wa-border bg-wa-surface text-wa-text/90 hover:border-wa-border'
                   }`}
                 >
                   <span
@@ -427,33 +427,33 @@ export function Step2SelectAudience({
       </div>
 
       {/* Audience Summary */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
-        <p className="mb-2 text-sm font-medium text-white">Audience Summary</p>
+      <div className="rounded-xl border border-wa-border bg-wa-panel/50 p-4">
+        <p className="mb-2 text-sm font-medium text-wa-text">Audience Summary</p>
         {loadingCount ? (
           <div className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin text-violet-500" />
-            <span className="text-xs text-slate-400">Calculating…</span>
+            <Loader2 className="h-4 w-4 animate-spin text-wa-green" />
+            <span className="text-xs text-wa-muted">Calculating…</span>
           </div>
         ) : estimatedCount !== null ? (
           <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-violet-400" />
-            <span className="text-sm text-white">
+            <Users className="h-4 w-4 text-wa-green" />
+            <span className="text-sm text-wa-text">
               {estimatedCount.toLocaleString()}
             </span>
-            <span className="text-xs text-slate-400">estimated recipients</span>
+            <span className="text-xs text-wa-muted">estimated recipients</span>
           </div>
         ) : (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-wa-muted/80">
             Select an audience type to see the estimate.
           </p>
         )}
       </div>
 
-      <div className="flex items-center justify-between border-t border-slate-800 pt-4">
+      <div className="flex items-center justify-between border-t border-wa-border pt-4">
         <Button
           variant="outline"
           onClick={onBack}
-          className="border-slate-700 text-slate-300"
+          className="border-wa-border text-wa-text/90"
         >
           <ArrowLeft className="h-4 w-4" />
           Back
@@ -461,7 +461,7 @@ export function Step2SelectAudience({
         <Button
           onClick={onNext}
           disabled={!isValid}
-          className="bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50"
+          className="bg-wa-bubble-out text-wa-text hover:bg-wa-teal hover:text-white disabled:opacity-50"
         >
           Next
           <ArrowRight className="h-4 w-4" />

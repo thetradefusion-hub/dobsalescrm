@@ -218,6 +218,6 @@ export function temperatureLabel(t: LeadTemperature): string {
 
 export function temperatureBadgeClass(t: LeadTemperature): string {
   if (t === 'hot') return 'bg-orange-500/20 text-orange-300 border-orange-500/40'
-  if (t === 'warm') return 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-  return 'bg-slate-500/20 text-slate-400 border-slate-600'
+  if (t === 'warm') return 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/40'
+  return 'bg-wa-muted/20 text-wa-muted border-wa-border'
 }

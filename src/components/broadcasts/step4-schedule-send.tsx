@@ -93,80 +93,80 @@ export function Step4ScheduleSend({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-white">Review & Send</h2>
-        <p className="mt-1 text-sm text-slate-400">
+        <h2 className="text-lg font-semibold text-wa-text">Review & Send</h2>
+        <p className="mt-1 text-sm text-wa-muted">
           Name your broadcast, review the details, and send.
         </p>
       </div>
 
       {/* Broadcast Name */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-white">Broadcast Name</label>
+        <label className="mb-1.5 block text-sm font-medium text-wa-text">Broadcast Name</label>
         <Input
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           placeholder="e.g. Summer Sale Announcement"
-          className="border-slate-700 bg-slate-800 text-white placeholder:text-slate-500"
+          className="border-wa-border bg-wa-surface text-wa-text placeholder:text-wa-muted/80"
         />
       </div>
 
       {/* Summary Card */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 space-y-3">
-        <p className="text-sm font-medium text-white">Summary</p>
+      <div className="rounded-xl border border-wa-border bg-wa-panel/50 p-4 space-y-3">
+        <p className="text-sm font-medium text-wa-text">Summary</p>
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <p className="text-xs text-slate-400">Template</p>
-            <p className="text-white">{template.name}</p>
+            <p className="text-xs text-wa-muted">Template</p>
+            <p className="text-wa-text">{template.name}</p>
           </div>
           <div>
-            <p className="text-xs text-slate-400">Audience</p>
-            <p className="text-white">{audienceLabel}</p>
+            <p className="text-xs text-wa-muted">Audience</p>
+            <p className="text-wa-text">{audienceLabel}</p>
           </div>
           <div>
-            <p className="text-xs text-slate-400">Estimated Reach</p>
+            <p className="text-xs text-wa-muted">Estimated Reach</p>
             <div className="flex items-center gap-1.5">
               {loadingReach ? (
-                <Loader2 className="h-3 w-3 animate-spin text-violet-500" />
+                <Loader2 className="h-3 w-3 animate-spin text-wa-green" />
               ) : (
                 <>
-                  <Users className="h-3.5 w-3.5 text-violet-400" />
-                  <p className="font-medium text-white">{estimatedReach.toLocaleString()}</p>
+                  <Users className="h-3.5 w-3.5 text-wa-green" />
+                  <p className="font-medium text-wa-text">{estimatedReach.toLocaleString()}</p>
                 </>
               )}
             </div>
           </div>
           <div>
-            <p className="text-xs text-slate-400">Language</p>
-            <p className="text-white">{template.language ?? 'en_US'}</p>
+            <p className="text-xs text-wa-muted">Language</p>
+            <p className="text-wa-text">{template.language ?? 'en_US'}</p>
           </div>
         </div>
       </div>
 
       {/* Processing overlay */}
       {isProcessing && (
-        <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-4">
+        <div className="rounded-xl border border-wa-green/20 bg-wa-green/5 p-4">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin text-violet-500" />
-              <p className="text-sm font-medium text-white">Sending broadcast...</p>
+              <Loader2 className="h-4 w-4 animate-spin text-wa-green" />
+              <p className="text-sm font-medium text-wa-text">Sending broadcast...</p>
             </div>
-            <span className="text-xs font-medium text-violet-400">{progress}%</span>
+            <span className="text-xs font-medium text-wa-green">{progress}%</span>
           </div>
-          <div className="h-1.5 w-full rounded-full bg-slate-800">
+          <div className="h-1.5 w-full rounded-full bg-wa-surface">
             <div
-              className="h-1.5 rounded-full bg-violet-500 transition-all duration-300"
+              className="h-1.5 rounded-full bg-wa-green transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-wa-border pt-4">
         <Button
           variant="outline"
           onClick={onBack}
           disabled={isProcessing}
-          className="border-slate-700 text-slate-300"
+          className="border-wa-border text-wa-text/90"
         >
           <ArrowLeft className="h-4 w-4" />
           Back
@@ -178,7 +178,7 @@ export function Step4ScheduleSend({
               variant="outline"
               onClick={onSaveDraft}
               disabled={!name.trim() || isProcessing}
-              className="border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+              className="border-wa-border text-wa-text/90 hover:bg-wa-surface disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
               Save as Draft
@@ -190,21 +190,21 @@ export function Step4ScheduleSend({
             render={
               <Button
                 disabled={!name.trim() || isProcessing}
-                className="bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50"
+                className="bg-wa-bubble-out text-wa-text hover:bg-wa-teal hover:text-white disabled:opacity-50"
               />
             }
           >
             <Send className="h-4 w-4" />
             Send Broadcast
           </DialogTrigger>
-          <DialogContent className="border-slate-700 bg-slate-900 sm:max-w-md">
+          <DialogContent className="border-wa-border bg-wa-panel sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-white">Confirm Broadcast</DialogTitle>
-              <DialogDescription className="text-slate-400">
+              <DialogTitle className="text-wa-text">Confirm Broadcast</DialogTitle>
+              <DialogDescription className="text-wa-muted">
                 You are about to send this broadcast to{' '}
-                <span className="font-medium text-white">{estimatedReach.toLocaleString()}</span>{' '}
+                <span className="font-medium text-wa-text">{estimatedReach.toLocaleString()}</span>{' '}
                 contacts using the{' '}
-                <span className="font-medium text-white">{template.name}</span> template.
+                <span className="font-medium text-wa-text">{template.name}</span> template.
                 This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
@@ -212,7 +212,7 @@ export function Step4ScheduleSend({
               <Button
                 variant="outline"
                 onClick={() => setShowConfirm(false)}
-                className="border-slate-700 text-slate-300"
+                className="border-wa-border text-wa-text/90"
               >
                 Cancel
               </Button>
@@ -221,7 +221,7 @@ export function Step4ScheduleSend({
                   setShowConfirm(false);
                   onSend();
                 }}
-                className="bg-violet-600 text-white hover:bg-violet-700"
+                className="bg-wa-bubble-out text-wa-text hover:bg-wa-teal hover:text-white"
               >
                 <Send className="h-4 w-4" />
                 Confirm & Send

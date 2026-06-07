@@ -8,6 +8,7 @@ import { TemplateManager } from '@/components/settings/template-manager';
 import { TagManager } from '@/components/settings/tag-manager';
 import { ProfileForm } from '@/components/settings/profile-form';
 import { PasswordForm } from '@/components/settings/password-form';
+import { PushNotificationsCard } from '@/components/settings/push-notifications-card';
 import { SessionsCard } from '@/components/settings/sessions-card';
 import { AiConfig } from '@/components/settings/ai-config';
 
@@ -38,46 +39,46 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Settings</h1>
-        <p className="text-sm text-slate-400 mt-1">
+        <h1 className="text-2xl font-bold text-wa-text">Settings</h1>
+        <p className="text-sm text-wa-muted mt-1">
           Manage your profile, WhatsApp® integration, message templates, and
           tags.
         </p>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => onChange(v as TabValue)}>
-        <TabsList className="bg-slate-900 border border-slate-700">
+        <TabsList className="bg-wa-panel border border-wa-border">
           <TabsTrigger
             value="profile"
-            className="data-active:bg-slate-800 data-active:text-violet-400 text-slate-400"
+            className="data-active:bg-wa-surface data-active:text-wa-green text-wa-muted"
           >
             <User className="size-4" />
             Profile
           </TabsTrigger>
           <TabsTrigger
             value="whatsapp"
-            className="data-active:bg-slate-800 data-active:text-violet-400 text-slate-400"
+            className="data-active:bg-wa-surface data-active:text-wa-green text-wa-muted"
           >
             <Settings className="size-4" />
             WhatsApp Config
           </TabsTrigger>
           <TabsTrigger
             value="ai"
-            className="data-active:bg-slate-800 data-active:text-violet-400 text-slate-400"
+            className="data-active:bg-wa-surface data-active:text-wa-green text-wa-muted"
           >
             <Bot className="size-4" />
             AI
           </TabsTrigger>
           <TabsTrigger
             value="templates"
-            className="data-active:bg-slate-800 data-active:text-violet-400 text-slate-400"
+            className="data-active:bg-wa-surface data-active:text-wa-green text-wa-muted"
           >
             <MessageSquare className="size-4" />
             Templates
           </TabsTrigger>
           <TabsTrigger
             value="tags"
-            className="data-active:bg-slate-800 data-active:text-violet-400 text-slate-400"
+            className="data-active:bg-wa-surface data-active:text-wa-green text-wa-muted"
           >
             <Tag className="size-4" />
             Tags
@@ -86,6 +87,7 @@ export default function SettingsPage() {
 
         <TabsContent value="profile" className="space-y-6">
           <ProfileForm />
+          <PushNotificationsCard />
           <PasswordForm />
           <SessionsCard />
         </TabsContent>

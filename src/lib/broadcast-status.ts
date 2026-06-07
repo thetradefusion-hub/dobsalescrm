@@ -23,11 +23,11 @@ export interface StatusDisplay {
 export const broadcastStatusConfig: Record<BroadcastStatus, StatusDisplay> = {
   draft: {
     label: "Draft",
-    classes: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+    classes: "bg-wa-muted/10 text-wa-muted border-wa-muted/20",
   },
   scheduled: {
     label: "Scheduled",
-    classes: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    classes: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
   },
   sending: {
     label: "Sending",
@@ -36,7 +36,7 @@ export const broadcastStatusConfig: Record<BroadcastStatus, StatusDisplay> = {
   },
   sent: {
     label: "Sent",
-    classes: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+    classes: "bg-wa-green/10 text-wa-green border-wa-green/20",
   },
   failed: {
     label: "Failed",
@@ -47,19 +47,19 @@ export const broadcastStatusConfig: Record<BroadcastStatus, StatusDisplay> = {
 export const recipientStatusConfig: Record<RecipientStatus, StatusDisplay> = {
   pending: {
     label: "Pending",
-    classes: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+    classes: "bg-wa-muted/10 text-wa-muted border-wa-muted/20",
   },
   sent: {
     label: "Sent",
-    classes: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    classes: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
   },
   delivered: {
     label: "Delivered",
-    classes: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+    classes: "bg-wa-green/10 text-wa-green border-wa-green/20",
   },
   read: {
     label: "Read",
-    classes: "bg-violet-500/10 text-violet-300 border-violet-500/20",
+    classes: "bg-wa-green/10 text-wa-green/90 border-wa-green/20",
   },
   replied: {
     label: "Replied",

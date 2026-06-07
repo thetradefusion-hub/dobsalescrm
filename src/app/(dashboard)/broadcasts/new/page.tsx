@@ -122,8 +122,8 @@ export default function NewBroadcastPage() {
     <div className="mx-auto max-w-3xl space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">New Broadcast</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-wa-text">New Broadcast</h1>
+        <p className="mt-1 text-sm text-wa-muted">
           Create and send a broadcast message to your contacts.
         </p>
       </div>
@@ -140,17 +140,17 @@ export default function NewBroadcastPage() {
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-all ${
                     isCompleted
-                      ? 'bg-violet-500 text-white'
+                      ? 'bg-wa-green text-white'
                       : isActive
-                        ? 'border-2 border-violet-500 bg-violet-500/10 text-violet-400'
-                        : 'border border-slate-700 bg-slate-800 text-slate-500'
+                        ? 'border-2 border-wa-green bg-wa-green/10 text-wa-green'
+                        : 'border border-wa-border bg-wa-surface text-wa-muted/80'
                   }`}
                 >
                   {isCompleted ? <Check className="h-4 w-4" /> : index + 1}
                 </div>
                 <span
                   className={`hidden text-sm font-medium sm:block ${
-                    isActive ? 'text-white' : isCompleted ? 'text-violet-400' : 'text-slate-500'
+                    isActive ? 'text-wa-text' : isCompleted ? 'text-wa-green' : 'text-wa-muted/80'
                   }`}
                 >
                   {step.label}
@@ -159,7 +159,7 @@ export default function NewBroadcastPage() {
               {index < steps.length - 1 && (
                 <div
                   className={`mx-3 h-px flex-1 ${
-                    index < currentStep ? 'bg-violet-500' : 'bg-slate-800'
+                    index < currentStep ? 'bg-wa-green' : 'bg-wa-surface'
                   }`}
                 />
               )}

@@ -1,6 +1,7 @@
 "use client"
 
 import { GitBranch } from 'lucide-react'
+import { useTheme } from 'next-themes'
 import { formatDealCurrencyShort } from '@/lib/currency'
 import type { PipelineDonutData } from '@/lib/dashboard/types'
 import { EmptyState } from './empty-state'
@@ -12,11 +13,14 @@ interface PipelineDonutProps {
 }
 
 export function PipelineDonut({ data, loading }: PipelineDonutProps) {
+  const { resolvedTheme } = useTheme()
+  const themeKey = resolvedTheme ?? 'dark'
+
   return (
-    <section className="flex h-full flex-col rounded-xl border border-slate-800 bg-slate-900">
-      <header className="border-b border-slate-800 px-5 py-4">
-        <h2 className="text-sm font-semibold text-white">Pipeline Value</h2>
-        <p className="mt-0.5 text-xs text-slate-500">
+    <section className="flex h-full flex-col rounded-xl border border-wa-border bg-wa-panel">
+      <header className="border-b border-wa-border px-5 py-4">
+        <h2 className="text-sm font-semibold text-wa-text">Pipeline Value</h2>
+        <p className="mt-0.5 text-xs text-wa-muted/80">
           Open deals by stage
         </p>
       </header>
@@ -32,7 +36,7 @@ export function PipelineDonut({ data, loading }: PipelineDonutProps) {
           />
         ) : (
           <>
-            <Donut data={data} />
+            <Donut key={themeKey} data={data} />
             <ul className="mt-5 space-y-2">
               {data.stages.map((s) => (
                 <li key={s.id} className="flex items-center gap-3 text-xs">
@@ -41,11 +45,11 @@ export function PipelineDonut({ data, loading }: PipelineDonutProps) {
                     style={{ background: s.color }}
                     aria-hidden
                   />
-                  <span className="flex-1 truncate text-slate-300">{s.name}</span>
-                  <span className="text-slate-500 tabular-nums">
+                  <span className="flex-1 truncate text-wa-text/90">{s.name}</span>
+                  <span className="text-wa-muted/80 tabular-nums">
                     {s.dealCount} deal{s.dealCount === 1 ? '' : 's'}
                   </span>
-                  <span className="w-20 text-right text-slate-300 tabular-nums">
+                  <span className="w-20 text-right text-wa-text/90 tabular-nums">
                     {formatDealCurrencyShort(s.totalValue)}
                   </span>
                 </li>
@@ -61,7 +65,7 @@ export function PipelineDonut({ data, loading }: PipelineDonutProps) {
 // ------------------------------------------------------------
 // SVG ring. 200×200 viewBox, 12px ring width. We draw one <path>
 // per stage using an SVG arc from startAngle → endAngle. Gaps
-// between segments are implied by a thin slate-900 stroke between
+// between segments are implied by a thin wa-panel stroke between
 // them for a cleaner look.
 // ------------------------------------------------------------
 function Donut({ data }: { data: PipelineDonutData }) {
@@ -96,7 +100,7 @@ function Donut({ data }: { data: PipelineDonutData }) {
     <div className="flex items-center justify-center">
       <svg viewBox={`0 0 ${size} ${size}`} className="h-48 w-48" role="img" aria-label="Pipeline value by stage">
         {/* background ring */}
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgb(30 41 59)" strokeWidth={ringWidth} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--wa-chart-grid)" strokeWidth={ringWidth} />
         {segments.map((seg) => (
           <path
             key={seg.id}
@@ -112,7 +116,7 @@ function Donut({ data }: { data: PipelineDonutData }) {
           x={cx}
           y={cy - 6}
           textAnchor="middle"
-          className="fill-slate-500 text-[11px]"
+          className="fill-wa-muted/80 text-[11px]"
         >
           Total
         </text>
@@ -120,7 +124,7 @@ function Donut({ data }: { data: PipelineDonutData }) {
           x={cx}
           y={cy + 14}
           textAnchor="middle"
-          className="fill-white text-[18px] font-semibold tabular-nums"
+          className="fill-wa-text text-[18px] font-semibold tabular-nums"
         >
           {formatDealCurrencyShort(data.totalValue)}
         </text>

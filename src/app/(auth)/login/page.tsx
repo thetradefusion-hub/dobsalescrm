@@ -14,8 +14,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { MessageSquare } from "lucide-react";
+import { Loader2, LogIn } from "lucide-react";
 import { BRAND_NAME } from "@/lib/brand";
+import { AuthShell } from "@/components/auth/auth-shell";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -45,48 +46,54 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
-      <Card className="w-full max-w-md border-slate-800 bg-slate-900">
-        <CardHeader className="items-center text-center">
-          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-violet-500/10">
-            <MessageSquare className="h-6 w-6 text-violet-500" />
+    <AuthShell>
+      <Card className="border-wa-border bg-wa-panel shadow-lg ring-wa-border/80">
+        <CardHeader className="items-center space-y-1 text-center pb-2">
+          <div className="mb-1 flex h-14 w-14 items-center justify-center rounded-2xl bg-wa-green/10 ring-1 ring-wa-green/20">
+            <LogIn className="h-7 w-7 text-wa-green" aria-hidden />
           </div>
-          <CardTitle className="text-xl text-white">Welcome back</CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardTitle className="text-2xl font-bold text-wa-text">
+            Welcome back
+          </CardTitle>
+          <CardDescription className="text-wa-muted">
             Sign in to {BRAND_NAME}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
             {error && (
-              <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+              <div
+                role="alert"
+                className="rounded-lg border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400"
+              >
                 {error}
               </div>
             )}
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email" className="text-slate-300">
+              <Label htmlFor="email" className="text-wa-text">
                 Email
               </Label>
               <Input
                 id="email"
                 type="email"
+                autoComplete="email"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="border-slate-700 bg-slate-800 text-white placeholder:text-slate-500 focus-visible:border-violet-500 focus-visible:ring-violet-500/20"
+                className="h-10 border-wa-border bg-wa-surface text-wa-text placeholder:text-wa-muted focus-visible:border-wa-green focus-visible:ring-wa-green/25"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-slate-300">
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="password" className="text-wa-text">
                   Password
                 </Label>
                 <Link
                   href="/forgot-password"
-                  className="text-sm text-violet-500 hover:text-violet-400"
+                  className="text-sm font-medium text-wa-teal hover:text-wa-green hover:underline"
                 >
                   Forgot password?
                 </Link>
@@ -94,34 +101,42 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
+                autoComplete="current-password"
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="border-slate-700 bg-slate-800 text-white placeholder:text-slate-500 focus-visible:border-violet-500 focus-visible:ring-violet-500/20"
+                className="h-10 border-wa-border bg-wa-surface text-wa-text placeholder:text-wa-muted focus-visible:border-wa-green focus-visible:ring-wa-green/25"
               />
             </div>
 
             <Button
               type="submit"
               disabled={loading}
-              className="mt-2 h-10 w-full bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-50"
+              className="mt-1 h-11 w-full bg-wa-green text-white hover:bg-wa-teal hover:text-white disabled:opacity-50"
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  Signing in…
+                </>
+              ) : (
+                "Sign in"
+              )}
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-slate-400">
+          <p className="mt-6 text-center text-sm text-wa-muted">
             Don&apos;t have an account?{" "}
             <Link
               href="/signup"
-              className="text-violet-500 hover:text-violet-400"
+              className="font-medium text-wa-teal hover:text-wa-green hover:underline"
             >
               Create account
             </Link>
           </p>
         </CardContent>
       </Card>
-    </div>
+    </AuthShell>
   );
 }

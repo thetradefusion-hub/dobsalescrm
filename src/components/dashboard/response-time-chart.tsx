@@ -1,6 +1,7 @@
 "use client"
 
 import { Clock } from 'lucide-react'
+import { useTheme } from 'next-themes'
 import { DOW_SHORT_MON_FIRST } from '@/lib/dashboard/date-utils'
 import type { ResponseTimeSummary } from '@/lib/dashboard/types'
 import { EmptyState } from './empty-state'
@@ -22,29 +23,31 @@ export function ResponseTimeChart({
   loading,
   thresholdMinutes = 5,
 }: ResponseTimeChartProps) {
+  const { resolvedTheme } = useTheme()
+  const themeKey = resolvedTheme ?? 'dark'
   const hasData = data?.buckets.some((b) => b.avgMinutes != null) ?? false
 
   return (
-    <section className="rounded-xl border border-slate-800 bg-slate-900">
-      <header className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+    <section className="rounded-xl border border-wa-border bg-wa-panel">
+      <header className="flex items-center justify-between border-b border-wa-border px-5 py-4">
         <div>
-          <h2 className="text-sm font-semibold text-white">
+          <h2 className="text-sm font-semibold text-wa-text">
             Average First Response Time
           </h2>
-          <p className="mt-0.5 text-xs text-slate-500">
+          <p className="mt-0.5 text-xs text-wa-muted/80">
             Minutes to reply to a customer&apos;s first unreplied message, by
             weekday
           </p>
         </div>
         {data && (data.thisWeekAvg != null || data.lastWeekAvg != null) && (
           <div className="text-right text-xs">
-            <div className="text-slate-400">
+            <div className="text-wa-muted">
               This week:{' '}
-              <span className="font-medium text-white tabular-nums">
+              <span className="font-medium text-wa-text tabular-nums">
                 {fmt(data.thisWeekAvg)}
               </span>
             </div>
-            <div className="text-slate-500">
+            <div className="text-wa-muted/80">
               Last week:{' '}
               <span className="tabular-nums">{fmt(data.lastWeekAvg)}</span>
             </div>
@@ -62,7 +65,7 @@ export function ResponseTimeChart({
             hint="This chart fills in as you reply to customer messages."
           />
         ) : (
-          <Bars data={data} thresholdMinutes={thresholdMinutes} />
+          <Bars key={themeKey} data={data} thresholdMinutes={thresholdMinutes} />
         )}
       </div>
     </section>
@@ -102,7 +105,7 @@ function Bars({
               x2={VB_W - PADDING.right}
               y1={y}
               y2={y}
-              stroke="rgb(30 41 59)"
+              stroke="var(--wa-chart-grid)"
               strokeDasharray="3 3"
             />
             <text
@@ -110,7 +113,7 @@ function Bars({
               y={y}
               textAnchor="end"
               dominantBaseline="middle"
-              className="fill-slate-500 text-[10px]"
+              className="fill-wa-muted/80 text-[10px]"
             >
               {t}m
             </text>
@@ -136,7 +139,7 @@ function Bars({
             x={VB_W - PADDING.right - 4}
             y={yFor(thresholdMinutes) - 4}
             textAnchor="end"
-            className="fill-rose-300 text-[10px]"
+            className="fill-rose-600 dark:fill-rose-300 text-[10px]"
           >
             target {thresholdMinutes}m
           </text>
@@ -158,7 +161,7 @@ function Bars({
               width={barW}
               height={muted ? 2 : Math.max(1, h)}
               rx={4}
-              fill={muted ? 'rgb(51 65 85)' : '#7c3aed'}
+              fill={muted ? 'var(--wa-chart-muted-bar)' : 'var(--wa-teal)'}
               opacity={muted ? 0.6 : 1}
             >
               <title>
@@ -171,7 +174,7 @@ function Bars({
               x={x + barW / 2}
               y={VB_H - 10}
               textAnchor="middle"
-              className="fill-slate-400 text-[11px]"
+              className="fill-wa-muted text-[11px]"
             >
               {DOW_SHORT_MON_FIRST[i]}
             </text>

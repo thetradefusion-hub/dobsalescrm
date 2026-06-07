@@ -242,7 +242,7 @@ export function AiConfig() {
 
   if (authLoading || loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-slate-400">
+      <div className="flex items-center justify-center py-16 text-wa-muted">
         <Loader2 className="h-6 w-6 animate-spin" />
       </div>
     );
@@ -250,13 +250,13 @@ export function AiConfig() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <Card className="border-slate-800 bg-slate-900">
+      <Card className="border-wa-border bg-wa-panel">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
-            <Bot className="h-5 w-5 text-violet-400" />
+          <CardTitle className="flex items-center gap-2 text-wa-text">
+            <Bot className="h-5 w-5 text-wa-green" />
             AI Auto-Reply
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-wa-muted">
             Connect ChatGPT (OpenAI) or Gemini to reply intelligently on WhatsApp.
             Use a system prompt to define your brand voice and rules.
           </CardDescription>
@@ -264,29 +264,29 @@ export function AiConfig() {
         <CardContent className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label className="text-slate-300">Provider</Label>
+              <Label className="text-wa-text/90">Provider</Label>
               <select
                 value={provider}
                 onChange={(e) => setProvider(e.target.value as AiProvider)}
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+                className="mt-1 w-full rounded-md border border-wa-border bg-wa-surface px-3 py-2 text-sm text-wa-text"
               >
                 <option value="openai">OpenAI (ChatGPT)</option>
                 <option value="gemini">Google Gemini</option>
               </select>
             </div>
             <div>
-              <Label className="text-slate-300">Model</Label>
+              <Label className="text-wa-text/90">Model</Label>
               <Input
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
                 placeholder={provider === 'gemini' ? 'gemini-2.0-flash' : 'gpt-4o-mini'}
-                className="mt-1 bg-slate-800 text-white"
+                className="mt-1 bg-wa-surface text-wa-text"
               />
             </div>
           </div>
 
           <div>
-            <Label className="text-slate-300">API key</Label>
+            <Label className="text-wa-text/90">API key</Label>
             <div className="relative mt-1">
               <Input
                 type={showKey ? 'text' : 'password'}
@@ -296,57 +296,57 @@ export function AiConfig() {
                   setKeyEdited(true);
                 }}
                 placeholder={provider === 'gemini' ? 'AIza…' : 'sk-…'}
-                className="bg-slate-800 pr-10 text-white"
+                className="bg-wa-surface pr-10 text-wa-text"
               />
               <button
                 type="button"
                 onClick={() => setShowKey(!showKey)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-wa-muted hover:text-wa-text"
               >
                 {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-wa-muted/80">
               Encrypted at rest. OpenAI: platform.openai.com — Gemini: aistudio.google.com
             </p>
           </div>
 
           <div>
-            <Label className="text-slate-300">System prompt</Label>
+            <Label className="text-wa-text/90">System prompt</Label>
             <Textarea
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
-              className="mt-1 min-h-32 bg-slate-800 text-white"
+              className="mt-1 min-h-32 bg-wa-surface text-wa-text"
               placeholder="Describe how the AI should behave, your business, tone, and limits…"
             />
           </div>
 
-          <div className="space-y-3 rounded-lg border border-slate-800 p-4">
+          <div className="space-y-3 rounded-lg border border-wa-border p-4">
             <div>
-              <p className="font-medium text-white">Call number in AI replies</p>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="font-medium text-wa-text">Call number in AI replies</p>
+              <p className="mt-1 text-xs text-wa-muted">
                 Customers can tap the number in WhatsApp to call you directly.
               </p>
             </div>
             <div>
-              <Label className="text-slate-300">Your business phone</Label>
+              <Label className="text-wa-text/90">Your business phone</Label>
               <Input
                 value={callPhone}
                 onChange={(e) => setCallPhone(e.target.value)}
                 placeholder="+919876543210 or 9876543210"
-                className="mt-1 bg-slate-800 text-white"
+                className="mt-1 bg-wa-surface text-wa-text"
               />
             </div>
             <div className="flex items-center justify-between">
-              <p className="text-sm text-slate-300">Include in every AI reply</p>
+              <p className="text-sm text-wa-text/90">Include in every AI reply</p>
               <Switch checked={callPhoneInReplies} onCheckedChange={setCallPhoneInReplies} />
             </div>
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-slate-800 p-4">
+          <div className="flex items-center justify-between rounded-lg border border-wa-border p-4">
             <div>
-              <p className="font-medium text-white">Sync & qualify leads from AI chats</p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="font-medium text-wa-text">Sync & qualify leads from AI chats</p>
+              <p className="text-xs text-wa-muted mt-1">
                 After each AI reply, create/update a deal, score Hot/Warm/Cold (₹30k+ budget, 60-day
                 timeline rules), tag the contact, and move pipeline stage.
               </p>
@@ -355,16 +355,16 @@ export function AiConfig() {
           </div>
 
           {leadSync && (
-            <div className="space-y-3 rounded-lg border border-slate-800 p-4">
+            <div className="space-y-3 rounded-lg border border-wa-border p-4">
               <div>
-                <Label className="text-slate-300">Pipeline for new leads</Label>
+                <Label className="text-wa-text/90">Pipeline for new leads</Label>
                 <select
                   value={leadPipelineId}
                   onChange={(e) => {
                     setLeadPipelineId(e.target.value);
                     setLeadStageId('');
                   }}
-                  className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+                  className="mt-1 w-full rounded-md border border-wa-border bg-wa-surface px-3 py-2 text-sm text-wa-text"
                 >
                   <option value="">First pipeline (default)</option>
                   {pipelines.map((p) => (
@@ -376,11 +376,11 @@ export function AiConfig() {
               </div>
               {leadPipelineId && stages.length > 0 && (
                 <div>
-                  <Label className="text-slate-300">Stage</Label>
+                  <Label className="text-wa-text/90">Stage</Label>
                   <select
                     value={leadStageId}
                     onChange={(e) => setLeadStageId(e.target.value)}
-                    className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+                    className="mt-1 w-full rounded-md border border-wa-border bg-wa-surface px-3 py-2 text-sm text-wa-text"
                   >
                     <option value="">First stage (default)</option>
                     {stages.map((s) => (
@@ -397,10 +397,10 @@ export function AiConfig() {
                 </p>
               )}
 
-              <div className="flex items-center justify-between rounded-md border border-slate-700/80 p-3">
+              <div className="flex items-center justify-between rounded-md border border-wa-border/80 p-3">
                 <div>
-                  <p className="text-sm font-medium text-white">AI lead qualification</p>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-sm font-medium text-wa-text">AI lead qualification</p>
+                  <p className="text-xs text-wa-muted/80 mt-0.5">
                     Hot = budget ≥ threshold, timeline ≤ days, serious buyer, clear requirements
                   </p>
                 </div>
@@ -411,66 +411,66 @@ export function AiConfig() {
                 <>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div>
-                      <Label className="text-slate-300">Hot lead min budget (₹)</Label>
+                      <Label className="text-wa-text/90">Hot lead min budget (₹)</Label>
                       <Input
                         type="number"
                         min={0}
                         value={leadHotBudget}
                         onChange={(e) => setLeadHotBudget(Number(e.target.value))}
-                        className="mt-1 bg-slate-800 text-white"
+                        className="mt-1 bg-wa-surface text-wa-text"
                       />
                     </div>
                     <div>
-                      <Label className="text-slate-300">Hot timeline max (days)</Label>
+                      <Label className="text-wa-text/90">Hot timeline max (days)</Label>
                       <Input
                         type="number"
                         min={1}
                         max={365}
                         value={leadTimelineDays}
                         onChange={(e) => setLeadTimelineDays(Number(e.target.value))}
-                        className="mt-1 bg-slate-800 text-white"
+                        className="mt-1 bg-wa-surface text-wa-text"
                       />
                     </div>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div>
-                      <Label className="text-slate-300">Min customer messages</Label>
+                      <Label className="text-wa-text/90">Min customer messages</Label>
                       <Input
                         type="number"
                         min={1}
                         max={10}
                         value={leadMinMessages}
                         onChange={(e) => setLeadMinMessages(Number(e.target.value))}
-                        className="mt-1 bg-slate-800 text-white"
+                        className="mt-1 bg-wa-surface text-wa-text"
                       />
                     </div>
                     <div>
-                      <Label className="text-slate-300">Re-qualify cooldown (min)</Label>
+                      <Label className="text-wa-text/90">Re-qualify cooldown (min)</Label>
                       <Input
                         type="number"
                         min={0}
                         max={120}
                         value={leadCooldown}
                         onChange={(e) => setLeadCooldown(Number(e.target.value))}
-                        className="mt-1 bg-slate-800 text-white"
+                        className="mt-1 bg-wa-surface text-wa-text"
                       />
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <p className="text-sm text-slate-300">Auto-tag Hot / Warm / Cold on contact</p>
+                    <p className="text-sm text-wa-text/90">Auto-tag Hot / Warm / Cold on contact</p>
                     <Switch checked={leadAutoTag} onCheckedChange={setLeadAutoTag} />
                   </div>
                   {stages.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-wa-muted/80">
                         Optional stage per temperature (empty = auto-match by stage name)
                       </p>
                       <div>
-                        <Label className="text-slate-300">🔥 Hot stage</Label>
+                        <Label className="text-wa-text/90">🔥 Hot stage</Label>
                         <select
                           value={leadHotStageId}
                           onChange={(e) => setLeadHotStageId(e.target.value)}
-                          className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+                          className="mt-1 w-full rounded-md border border-wa-border bg-wa-surface px-3 py-2 text-sm text-wa-text"
                         >
                           <option value="">Auto</option>
                           {stages.map((s) => (
@@ -481,11 +481,11 @@ export function AiConfig() {
                         </select>
                       </div>
                       <div>
-                        <Label className="text-slate-300">Warm stage</Label>
+                        <Label className="text-wa-text/90">Warm stage</Label>
                         <select
                           value={leadWarmStageId}
                           onChange={(e) => setLeadWarmStageId(e.target.value)}
-                          className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+                          className="mt-1 w-full rounded-md border border-wa-border bg-wa-surface px-3 py-2 text-sm text-wa-text"
                         >
                           <option value="">Auto</option>
                           {stages.map((s) => (
@@ -496,11 +496,11 @@ export function AiConfig() {
                         </select>
                       </div>
                       <div>
-                        <Label className="text-slate-300">Cold stage</Label>
+                        <Label className="text-wa-text/90">Cold stage</Label>
                         <select
                           value={leadColdStageId}
                           onChange={(e) => setLeadColdStageId(e.target.value)}
-                          className="mt-1 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+                          className="mt-1 w-full rounded-md border border-wa-border bg-wa-surface px-3 py-2 text-sm text-wa-text"
                         >
                           <option value="">Auto</option>
                           {stages.map((s) => (
@@ -516,34 +516,34 @@ export function AiConfig() {
                   <div className="space-y-3 rounded-md border border-orange-500/20 bg-orange-500/5 p-3">
                     <p className="text-sm font-medium text-orange-200">🔥 Hot lead actions</p>
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-slate-300">Auto-assign conversation & deal</p>
+                      <p className="text-sm text-wa-text/90">Auto-assign conversation & deal</p>
                       <Switch checked={leadHotAutoAssign} onCheckedChange={setLeadHotAutoAssign} />
                     </div>
                     {leadHotAutoAssign && user && (
                       <div>
-                        <Label className="text-slate-300">Assign to agent (optional)</Label>
+                        <Label className="text-wa-text/90">Assign to agent (optional)</Label>
                         <Input
                           value={leadHotAssignAgentId}
                           onChange={(e) => setLeadHotAssignAgentId(e.target.value)}
                           placeholder={`Empty = you (${user.id.slice(0, 8)}…)`}
-                          className="mt-1 bg-slate-800 font-mono text-xs text-white"
+                          className="mt-1 bg-wa-surface font-mono text-xs text-wa-text"
                         />
                       </div>
                     )}
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-slate-300">WhatsApp alert to your phone</p>
+                      <p className="text-sm text-wa-text/90">WhatsApp alert to your phone</p>
                       <Switch checked={leadAlertEnabled} onCheckedChange={setLeadAlertEnabled} />
                     </div>
                     {leadAlertEnabled && (
                       <div>
-                        <Label className="text-slate-300">Alert phone (E.164)</Label>
+                        <Label className="text-wa-text/90">Alert phone (E.164)</Label>
                         <Input
                           value={leadAlertPhone}
                           onChange={(e) => setLeadAlertPhone(e.target.value)}
                           placeholder="+919876543210"
-                          className="mt-1 bg-slate-800 text-white"
+                          className="mt-1 bg-wa-surface text-wa-text"
                         />
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="mt-1 text-xs text-wa-muted/80">
                           Number must be in Meta test recipients. Sent when a lead becomes Hot.
                         </p>
                       </div>
@@ -553,9 +553,9 @@ export function AiConfig() {
               )}
 
               {configured && (
-                <div className="rounded-md border border-violet-500/30 bg-violet-500/5 p-3">
-                  <p className="text-sm font-medium text-violet-200">Existing chats</p>
-                  <p className="mt-1 mb-3 text-xs text-slate-400">
+                <div className="rounded-md border border-wa-green/30 bg-wa-green/5 p-3">
+                  <p className="text-sm font-medium text-wa-green/90">Existing chats</p>
+                  <p className="mt-1 mb-3 text-xs text-wa-muted">
                     Re-qualify all past conversations (Hot/Warm/Cold). No new AI messages sent.
                   </p>
                   <Button
@@ -573,10 +573,10 @@ export function AiConfig() {
             </div>
           )}
 
-          <div className="flex items-center justify-between rounded-lg border border-slate-800 p-4">
+          <div className="flex items-center justify-between rounded-lg border border-wa-border p-4">
             <div>
-              <p className="font-medium text-white">Auto-reply to every inbound message</p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="font-medium text-wa-text">Auto-reply to every inbound message</p>
+              <p className="text-xs text-wa-muted mt-1">
                 When on, AI replies globally. For keyword-only replies, turn this off and use an
                 Automation with the &quot;AI Reply&quot; step.
               </p>
@@ -584,25 +584,25 @@ export function AiConfig() {
             <Switch checked={autoReply} onCheckedChange={setAutoReply} />
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-slate-800 p-4">
+          <div className="flex items-center justify-between rounded-lg border border-wa-border p-4">
             <div>
-              <p className="font-medium text-white">Skip when conversation is assigned</p>
-              <p className="text-xs text-slate-400 mt-1">Do not AI-reply if an agent owns the chat</p>
+              <p className="font-medium text-wa-text">Skip when conversation is assigned</p>
+              <p className="text-xs text-wa-muted mt-1">Do not AI-reply if an agent owns the chat</p>
             </div>
             <Switch checked={skipIfAssigned} onCheckedChange={setSkipIfAssigned} />
           </div>
 
           <div>
-            <Label className="text-slate-300">Conversation history (messages)</Label>
+            <Label className="text-wa-text/90">Conversation history (messages)</Label>
             <Input
               type="number"
               min={1}
               max={50}
               value={maxHistory}
               onChange={(e) => setMaxHistory(Number(e.target.value))}
-              className="mt-1 w-32 bg-slate-800 text-white"
+              className="mt-1 w-32 bg-wa-surface text-wa-text"
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-wa-muted/80">
               How many past messages the AI sees for context (max 50).
             </p>
           </div>
@@ -619,9 +619,9 @@ export function AiConfig() {
           </div>
 
           {testReply && (
-            <Alert className="border-violet-500/30 bg-violet-500/10">
-              <AlertTitle className="text-violet-300">Test reply</AlertTitle>
-              <AlertDescription className="text-slate-300 whitespace-pre-wrap">{testReply}</AlertDescription>
+            <Alert className="border-wa-green/30 bg-wa-green/10">
+              <AlertTitle className="text-wa-green/90">Test reply</AlertTitle>
+              <AlertDescription className="text-wa-text/90 whitespace-pre-wrap">{testReply}</AlertDescription>
             </Alert>
           )}
         </CardContent>

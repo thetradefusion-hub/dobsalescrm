@@ -148,7 +148,7 @@ export default function AutomationsPage() {
   if (automations === null) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-wa-green" />
       </div>
     )
   }
@@ -159,14 +159,14 @@ export default function AutomationsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Automations</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <h1 className="text-2xl font-bold text-wa-text">Automations</h1>
+          <p className="mt-1 text-sm text-wa-muted">
             Build workflows that react to WhatsApp® events automatically.
           </p>
         </div>
         <Button
           onClick={() => router.push("/automations/new")}
-          className="bg-violet-600 text-white hover:bg-violet-700"
+          className="bg-wa-bubble-out text-wa-text hover:bg-wa-teal hover:text-white"
         >
           <Plus className="h-4 w-4" />
           Create Automation
@@ -175,7 +175,7 @@ export default function AutomationsPage() {
 
       {showTemplates && (
         <section>
-          <h2 className="mb-3 text-sm font-semibold text-slate-300">Quick-start templates</h2>
+          <h2 className="mb-3 text-sm font-semibold text-wa-text/90">Quick-start templates</h2>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
             {TEMPLATE_ORDER.map((slug) => {
               const t = AUTOMATION_TEMPLATES[slug]
@@ -184,13 +184,13 @@ export default function AutomationsPage() {
                 <button
                   key={slug}
                   onClick={() => startFromTemplate(slug)}
-                  className="group flex flex-col items-start rounded-xl border border-slate-800 bg-slate-900 p-4 text-left transition-colors hover:border-violet-500/50 hover:bg-slate-900/80"
+                  className="group flex flex-col items-start rounded-xl border border-wa-border bg-wa-panel p-4 text-left transition-colors hover:border-wa-green/50 hover:bg-wa-panel/80"
                 >
-                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10 text-violet-400 group-hover:bg-violet-500/15">
+                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-wa-green/10 text-wa-green group-hover:bg-wa-green/15">
                     <Icon className="h-5 w-5" />
                   </div>
-                  <div className="text-sm font-semibold text-white">{t.name}</div>
-                  <p className="mt-1 text-xs text-slate-400">{t.description}</p>
+                  <div className="text-sm font-semibold text-wa-text">{t.name}</div>
+                  <p className="mt-1 text-xs text-wa-muted">{t.description}</p>
                 </button>
               )
             })}
@@ -199,12 +199,12 @@ export default function AutomationsPage() {
       )}
 
       {automations.length === 0 ? (
-        <div className="flex h-48 flex-col items-center justify-center rounded-xl border border-dashed border-slate-800 bg-slate-900/40">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-500/10">
-            <Zap className="h-6 w-6 text-violet-500" />
+        <div className="flex h-48 flex-col items-center justify-center rounded-xl border border-dashed border-wa-border bg-wa-panel/40">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-wa-green/10">
+            <Zap className="h-6 w-6 text-wa-green" />
           </div>
-          <p className="mt-3 text-sm font-medium text-white">No automations yet</p>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-3 text-sm font-medium text-wa-text">No automations yet</p>
+          <p className="mt-1 text-xs text-wa-muted">
             Pick a template above or create one from scratch.
           </p>
         </div>
@@ -230,7 +230,7 @@ export default function AutomationsPage() {
             <DialogTitle>Delete automation</DialogTitle>
             <DialogDescription>
               This permanently removes{" "}
-              <span className="text-white">{pendingDelete?.name}</span> and its execution
+              <span className="text-wa-text">{pendingDelete?.name}</span> and its execution
               history. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
@@ -274,13 +274,13 @@ function AutomationCard({
 }) {
   const meta = triggerMeta(automation.trigger_type)
   return (
-    <li className="rounded-xl border border-slate-800 bg-slate-900 transition-colors hover:border-slate-700">
+    <li className="rounded-xl border border-wa-border bg-wa-panel transition-colors hover:border-wa-border">
       <div className="flex items-center gap-4 p-4">
         <div
-          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-violet-500/10"
+          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-wa-green/10"
           aria-hidden
         >
-          <Zap className="h-5 w-5 text-violet-400" />
+          <Zap className="h-5 w-5 text-wa-green" />
         </div>
 
         <button
@@ -289,20 +289,20 @@ function AutomationCard({
           className="min-w-0 flex-1 text-left"
         >
           <div className="flex items-center gap-2">
-            <span className="truncate text-sm font-semibold text-white">
+            <span className="truncate text-sm font-semibold text-wa-text">
               {automation.name}
             </span>
             {automation.is_active && (
               <span className="relative flex h-2 w-2" aria-label="active">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-violet-500" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-wa-green opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-wa-green" />
               </span>
             )}
           </div>
           {automation.description && (
-            <p className="mt-0.5 truncate text-xs text-slate-400">{automation.description}</p>
+            <p className="mt-0.5 truncate text-xs text-wa-muted">{automation.description}</p>
           )}
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-wa-muted/80">
             <span
               className={cn(
                 "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
@@ -329,7 +329,7 @@ function AutomationCard({
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label="Open menu"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-800 hover:text-white data-[popup-open]:bg-slate-800"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-wa-muted transition-colors hover:bg-wa-surface hover:text-wa-text data-[popup-open]:bg-wa-surface"
             >
               <MoreVertical className="h-4 w-4" />
             </DropdownMenuTrigger>
