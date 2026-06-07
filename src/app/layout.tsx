@@ -16,6 +16,7 @@ export const metadata: Metadata = {
     template: `%s | ${BRAND_NAME}`,
   },
   description: BRAND_DESCRIPTION,
+  manifest: "/manifest.json",
   robots: {
     index: false,
     follow: false,
