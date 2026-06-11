@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { DashboardShell } from "./dashboard-shell";
 
 // Server layout whose only job is to declare "do not index" metadata
@@ -24,5 +25,15 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <DashboardShell>{children}</DashboardShell>;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center bg-wa-deep">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-wa-green border-t-transparent" />
+        </div>
+      }
+    >
+      <DashboardShell>{children}</DashboardShell>
+    </Suspense>
+  );
 }

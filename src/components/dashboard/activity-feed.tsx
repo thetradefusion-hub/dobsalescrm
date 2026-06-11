@@ -30,12 +30,32 @@ interface KindTheme {
   badge: string
 }
 
-const KIND_THEME: Record<ActivityKind, KindTheme> = {
-  message: { icon: MessageSquare, badge: 'bg-blue-500/10 text-blue-700 dark:text-blue-400' },
-  contact: { icon: UserPlus, badge: 'bg-wa-green/10 text-wa-green' },
-  deal: { icon: Briefcase, badge: 'bg-wa-green/10 text-wa-green' },
-  broadcast: { icon: Radio, badge: 'bg-amber-500/10 text-amber-400' },
-  automation: { icon: Zap, badge: 'bg-rose-500/10 text-rose-400' },
+const KIND_THEME: Record<ActivityKind, KindTheme & { label: string }> = {
+  message: {
+    icon: MessageSquare,
+    badge: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
+    label: 'Message',
+  },
+  contact: {
+    icon: UserPlus,
+    badge: 'bg-wa-green/10 text-wa-green',
+    label: 'Contact',
+  },
+  deal: {
+    icon: Briefcase,
+    badge: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+    label: 'Deal',
+  },
+  broadcast: {
+    icon: Radio,
+    badge: 'bg-violet-500/10 text-violet-700 dark:text-violet-400',
+    label: 'Broadcast',
+  },
+  automation: {
+    icon: Zap,
+    badge: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
+    label: 'Automation',
+  },
 }
 
 export function ActivityFeed({ items, loading }: ActivityFeedProps) {
@@ -54,12 +74,15 @@ export function ActivityFeed({ items, loading }: ActivityFeedProps) {
     i === 0 || totalLoaded > PAGE_SIZES[i - 1]
 
   return (
-    <section className="rounded-xl border border-wa-border bg-wa-panel">
-      <header className="flex items-center justify-between border-b border-wa-border px-5 py-4">
-        <h2 className="text-sm font-semibold text-wa-text">Recent Activity</h2>
+    <section className="overflow-hidden rounded-2xl border border-wa-border bg-wa-panel shadow-sm lg:rounded-xl">
+      <header className="flex items-center justify-between border-b border-wa-border bg-wa-surface/30 px-5 py-4">
+        <div>
+          <h2 className="text-sm font-semibold text-wa-text">Recent Activity</h2>
+          <p className="mt-0.5 text-xs text-wa-muted">Latest events across your CRM</p>
+        </div>
         <Link
           href="/inbox"
-          className="text-xs font-medium text-wa-green hover:text-wa-green/90"
+          className="rounded-md px-2 py-1 text-xs font-medium text-wa-teal transition-colors hover:bg-wa-surface hover:text-wa-green"
         >
           View all →
         </Link>
@@ -87,27 +110,33 @@ export function ActivityFeed({ items, loading }: ActivityFeedProps) {
               const Icon = theme.icon
               // Alternating row background for scanability — dark-theme
               // translation of the spec's white / #f9fafb stripes.
-              const stripe = i % 2 === 0 ? 'bg-transparent' : 'bg-wa-panel/40'
+              const stripe = i % 2 === 0 ? 'bg-transparent' : 'bg-wa-surface/40'
               const row = (
-                <div className="flex items-center gap-3 px-5 py-2.5">
+                <div className="flex items-center gap-3 px-5 py-3">
                   <span
                     className={cn(
-                      'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full',
+                      'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ring-1 ring-black/5 dark:ring-white/5',
                       theme.badge,
                     )}
                   >
-                    <Icon className="h-3.5 w-3.5" />
+                    <Icon className="h-4 w-4" aria-hidden />
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-sm text-wa-text">
-                    {it.text}
-                  </span>
-                  <span className="flex-shrink-0 text-xs text-wa-muted/80 tabular-nums">
+                  <div className="min-w-0 flex-1">
+                    <span className="mb-0.5 inline-block text-[10px] font-semibold uppercase tracking-wide text-wa-muted">
+                      {theme.label}
+                    </span>
+                    <p className="truncate text-sm text-wa-text">{it.text}</p>
+                  </div>
+                  <span className="flex-shrink-0 text-xs text-wa-muted tabular-nums">
                     {relativeTime(it.at)}
                   </span>
                 </div>
               )
               return (
-                <li key={it.id} className={cn(stripe, 'transition-colors hover:bg-wa-surface/40')}>
+                <li
+                  key={it.id}
+                  className={cn(stripe, 'transition-colors hover:bg-wa-surface/60')}
+                >
                   {it.href ? (
                     <Link href={it.href} className="block">
                       {row}

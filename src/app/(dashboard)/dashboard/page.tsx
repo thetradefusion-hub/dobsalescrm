@@ -1,12 +1,14 @@
 "use client"
 
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
   MessageSquare,
   UserPlus,
   IndianRupee,
   Send,
+  Inbox,
 } from 'lucide-react'
 
 import {
@@ -24,14 +26,18 @@ import type {
   ResponseTimeSummary,
 } from '@/lib/dashboard/types'
 
+import { DashboardHeader } from '@/components/dashboard/dashboard-header'
 import { MetricCard } from '@/components/dashboard/metric-card'
 import { SkeletonCard } from '@/components/dashboard/skeleton'
 import { QuickActions } from '@/components/dashboard/quick-actions'
+import { SectionHeading } from '@/components/dashboard/section-heading'
 import { ConversationsChart } from '@/components/dashboard/conversations-chart'
 import { PipelineDonut } from '@/components/dashboard/pipeline-donut'
 import { ResponseTimeChart } from '@/components/dashboard/response-time-chart'
 import { ActivityFeed } from '@/components/dashboard/activity-feed'
 import { formatDealCurrency } from '@/lib/currency'
+import { useIsDesktopLayout } from '@/hooks/use-media-query'
+import { cn } from '@/lib/utils'
 
 type RangeDays = 7 | 30 | 90
 
@@ -40,9 +46,6 @@ export default function DashboardPage() {
   const [metricsLoading, setMetricsLoading] = useState(true)
 
   const [range, setRange] = useState<RangeDays>(30)
-  // Keep a cache per range so switching tabs doesn't re-fetch what we
-  // already have. Ranges the user hasn't opened yet stay null and
-  // trigger a fetch on first view.
   const [series, setSeries] = useState<Record<RangeDays, ConversationsSeriesPoint[] | null>>({
     7: null,
     30: null,
@@ -59,19 +62,27 @@ export default function DashboardPage() {
   const [activity, setActivity] = useState<ActivityItem[] | null>(null)
   const [activityLoading, setActivityLoading] = useState(true)
 
-  const loadAll = useCallback(() => {
-    const db = createClient()
+  const [refreshing, setRefreshing] = useState(false)
+  const isDesktop = useIsDesktopLayout()
 
-    // Kick everything off in parallel. Each block has its own
-    // setState + finally so a slow query doesn't hold up faster
-    // sections — each widget shows its own skeleton independently.
+  const loadAll = useCallback((isRefresh = false) => {
+    const db = createClient()
+    if (isRefresh) setRefreshing(true)
+    else {
+      setMetricsLoading(true)
+      setSeriesLoading(true)
+      setPipelineLoading(true)
+      setResponseTimeLoading(true)
+      setActivityLoading(true)
+    }
+
     void loadMetrics(db)
       .then((m) => setMetrics(m))
       .catch((err) => console.error('[dashboard] metrics failed:', err))
       .finally(() => setMetricsLoading(false))
 
-    void loadConversationsSeries(db, 30)
-      .then((s) => setSeries((prev) => ({ ...prev, 30: s })))
+    void loadConversationsSeries(db, range)
+      .then((s) => setSeries((prev) => ({ ...prev, [range]: s })))
       .catch((err) => console.error('[dashboard] series failed:', err))
       .finally(() => setSeriesLoading(false))
 
@@ -85,23 +96,19 @@ export default function DashboardPage() {
       .catch((err) => console.error('[dashboard] response time failed:', err))
       .finally(() => setResponseTimeLoading(false))
 
-    // Fetch up to 50 so the biggest page-size option in the feed
-    // (50 rows) is already in memory — switching sizes then becomes
-    // a pure client-side slice with no extra round trip.
     void loadActivity(db, 50)
       .then((a) => setActivity(a))
       .catch((err) => console.error('[dashboard] activity failed:', err))
-      .finally(() => setActivityLoading(false))
-  }, [])
+      .finally(() => {
+        setActivityLoading(false)
+        if (isRefresh) setRefreshing(false)
+      })
+  }, [range])
 
   useEffect(() => {
     loadAll()
-  }, [loadAll])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- initial load only
 
-  // Range switch handler — kept in an event callback (not an effect)
-  // so the setState calls stay out of the react-hooks/set-state-in-effect
-  // rule's way. The cached bucket check means switching back to a
-  // previously-viewed range is instant and doesn't re-fetch.
   const handleRangeChange = useCallback(
     (r: RangeDays) => {
       setRange(r)
@@ -116,101 +123,139 @@ export default function DashboardPage() {
     [series],
   )
 
-  return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-wa-text">Dashboard</h1>
-        <p className="mt-1 text-sm text-wa-muted">
-          Live analytics across conversations, contacts, deals, broadcasts, and automations.
-        </p>
-      </div>
+  const handleRefresh = useCallback(() => {
+    setSeries((prev) => ({ ...prev, [range]: null }))
+    loadAll(true)
+  }, [loadAll, range])
 
-      {/* Metric cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {metricsLoading || !metrics ? (
-          Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-        ) : (
-          <>
-            <MetricCard
-              title="Active Conversations"
-              value={metrics.activeConversations.current.toLocaleString()}
-              icon={MessageSquare}
-              delta={{
-                sign: metrics.activeConversations.previous,
-                label: deltaLabel(metrics.activeConversations.previous, 'new today vs yesterday'),
-              }}
-            />
-            <MetricCard
-              title="New Contacts Today"
-              value={metrics.newContactsToday.current.toLocaleString()}
-              icon={UserPlus}
-              delta={{
-                sign:
-                  metrics.newContactsToday.current - metrics.newContactsToday.previous,
-                label: deltaLabel(
-                  metrics.newContactsToday.current - metrics.newContactsToday.previous,
-                  'vs yesterday',
-                ),
-              }}
-            />
-            <MetricCard
-              title="Open Deals Value"
-              value={formatDealCurrency(metrics.openDealsValue)}
-              icon={IndianRupee}
-              subtitle={`${metrics.openDealsCount} open deal${metrics.openDealsCount === 1 ? '' : 's'}`}
-            />
-            <MetricCard
-              title="Messages Sent Today"
-              value={metrics.messagesSentToday.current.toLocaleString()}
-              icon={Send}
-              delta={{
-                sign:
-                  metrics.messagesSentToday.current - metrics.messagesSentToday.previous,
-                label: deltaLabel(
-                  metrics.messagesSentToday.current - metrics.messagesSentToday.previous,
-                  'vs yesterday',
-                ),
-              }}
-            />
-          </>
+  return (
+    <div className="mx-auto w-full min-w-0 max-w-[1400px] space-y-4 overflow-x-hidden pb-2 lg:space-y-6 lg:pb-0 lg:bg-transparent">
+      <div className={cn(!isDesktop && 'wa-mobile-shell', 'lg:bg-transparent')}>
+        <DashboardHeader onRefresh={handleRefresh} isRefreshing={refreshing} />
+
+        {/* Mobile inbox shortcut — premium glass CTA */}
+        {!isDesktop && (
+        <div className="wa-fade-in px-4 pb-1 pt-3">
+          <Link
+            href="/inbox"
+            className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-wa-green/30 bg-gradient-to-r from-wa-green to-wa-teal p-4 shadow-lg shadow-wa-green/25 active:scale-[0.98]"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+              <Inbox className="h-5 w-5 text-white" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-white">Open Inbox</p>
+              <p className="text-xs text-white/80">Reply to WhatsApp chats</p>
+            </div>
+            <span className="rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
+              Go
+            </span>
+          </Link>
+        </div>
         )}
       </div>
 
-      {/* Quick actions */}
+      <section>
+        <SectionHeading
+          title="Overview"
+          description="Key metrics compared to yesterday where available"
+        />
+        {/* Mobile: horizontal swipe cards */}
+        <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] lg:grid lg:grid-cols-2 lg:gap-4 lg:overflow-visible lg:px-0 lg:pb-0 lg:snap-none xl:grid-cols-4 [&::-webkit-scrollbar]:hidden">
+          {metricsLoading || !metrics ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonCard
+                key={i}
+                className="min-w-[72%] sm:min-w-[48%] lg:min-w-0"
+              />
+            ))
+          ) : (
+            <>
+              <MetricCard
+                className="min-w-[72%] sm:min-w-[48%] lg:min-w-0"
+                title="Active Conversations"
+                value={metrics.activeConversations.current.toLocaleString()}
+                icon={MessageSquare}
+                accent="green"
+                delta={{
+                  sign: metrics.activeConversations.previous,
+                  label: deltaLabel(metrics.activeConversations.previous, 'new today vs yesterday'),
+                }}
+              />
+              <MetricCard
+                className="min-w-[72%] sm:min-w-[48%] lg:min-w-0"
+                title="New Contacts Today"
+                value={metrics.newContactsToday.current.toLocaleString()}
+                icon={UserPlus}
+                accent="blue"
+                delta={{
+                  sign:
+                    metrics.newContactsToday.current - metrics.newContactsToday.previous,
+                  label: deltaLabel(
+                    metrics.newContactsToday.current - metrics.newContactsToday.previous,
+                    'vs yesterday',
+                  ),
+                }}
+              />
+              <MetricCard
+                className="min-w-[72%] sm:min-w-[48%] lg:min-w-0"
+                title="Open Deals Value"
+                value={formatDealCurrency(metrics.openDealsValue)}
+                icon={IndianRupee}
+                accent="amber"
+                subtitle={`${metrics.openDealsCount} open deal${metrics.openDealsCount === 1 ? '' : 's'}`}
+              />
+              <MetricCard
+                className="min-w-[72%] sm:min-w-[48%] lg:min-w-0"
+                title="Messages Sent Today"
+                value={metrics.messagesSentToday.current.toLocaleString()}
+                icon={Send}
+                accent="teal"
+                delta={{
+                  sign:
+                    metrics.messagesSentToday.current - metrics.messagesSentToday.previous,
+                  label: deltaLabel(
+                    metrics.messagesSentToday.current - metrics.messagesSentToday.previous,
+                    'vs yesterday',
+                  ),
+                }}
+              />
+            </>
+          )}
+        </div>
+      </section>
+
       <QuickActions />
 
-      {/* Charts row */}
-      {/* items-stretch (the grid default) stretches the two columns to
-          match the tallest sibling; adding h-full on each wrapper and
-          on the inner panels makes both cards actually fill that
-          stretched height so their rounded borders line up. Without
-          this, the pipeline card rendered at its natural (shorter)
-          height while the line chart drove the row height. */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-        <div className="h-full lg:col-span-3">
-          <ConversationsChart
-            series={series}
-            loading={seriesLoading}
-            range={range}
-            onRangeChange={handleRangeChange}
-          />
+      <section>
+        <SectionHeading
+          title="Analytics"
+          description="Conversation trends, pipeline value, and response performance"
+        />
+        <div className="space-y-4 px-4 lg:px-0">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+            <div className="h-full lg:col-span-3">
+              <ConversationsChart
+                series={series}
+                loading={seriesLoading}
+                range={range}
+                onRangeChange={handleRangeChange}
+              />
+            </div>
+            <div className="h-full lg:col-span-2">
+              <PipelineDonut data={pipeline} loading={pipelineLoading} />
+            </div>
+          </div>
+          <ResponseTimeChart data={responseTime} loading={responseTimeLoading} />
         </div>
-        <div className="h-full lg:col-span-2">
-          <PipelineDonut data={pipeline} loading={pipelineLoading} />
-        </div>
-      </div>
+      </section>
 
-      {/* Response time */}
-      <ResponseTimeChart data={responseTime} loading={responseTimeLoading} />
-
-      {/* Activity feed */}
-      <ActivityFeed items={activity} loading={activityLoading} />
+      <section className="px-4 lg:px-0">
+        <ActivityFeed items={activity} loading={activityLoading} />
+      </section>
     </div>
   )
 }
-
-// ------------------------------------------------------------
 
 function deltaLabel(delta: number, suffix: string): string {
   if (delta === 0) return `No change ${suffix}`

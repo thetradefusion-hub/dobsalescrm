@@ -23,9 +23,11 @@ import { format } from "date-fns";
 
 interface ContactSidebarProps {
   contact: Contact | null;
+  /** `sheet` drops fixed sidebar width — used in mobile contact drawer. */
+  variant?: "sidebar" | "sheet";
 }
 
-export function ContactSidebar({ contact }: ContactSidebarProps) {
+export function ContactSidebar({ contact, variant = "sidebar" }: ContactSidebarProps) {
   const [copied, setCopied] = useState(false);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [notes, setNotes] = useState<ContactNote[]>([]);
@@ -115,7 +117,12 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
 
   if (!contact) {
     return (
-      <div className="flex h-full w-70 items-center justify-center border-l border-wa-border bg-wa-panel">
+      <div
+        className={cn(
+          "flex h-full items-center justify-center bg-wa-panel",
+          variant === "sidebar" && "w-70 border-l border-wa-border",
+        )}
+      >
         <p className="text-sm text-wa-muted/80">Select a conversation</p>
       </div>
     );
@@ -125,7 +132,12 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
-    <div className="flex h-full w-70 flex-col border-l border-wa-border bg-wa-panel">
+    <div
+      className={cn(
+        "flex h-full flex-col bg-wa-panel",
+        variant === "sidebar" && "w-70 border-l border-wa-border",
+      )}
+    >
       <ScrollArea className="flex-1">
         <div className="p-4">
           {/* Contact Info */}

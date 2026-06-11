@@ -8,7 +8,6 @@ import { TemplateManager } from '@/components/settings/template-manager';
 import { TagManager } from '@/components/settings/tag-manager';
 import { ProfileForm } from '@/components/settings/profile-form';
 import { PasswordForm } from '@/components/settings/password-form';
-import { PushNotificationsCard } from '@/components/settings/push-notifications-card';
 import { SessionsCard } from '@/components/settings/sessions-card';
 import { AiConfig } from '@/components/settings/ai-config';
 
@@ -87,7 +86,6 @@ export default function SettingsPage() {
 
         <TabsContent value="profile" className="space-y-6">
           <ProfileForm />
-          <PushNotificationsCard />
           <PasswordForm />
           <SessionsCard />
         </TabsContent>

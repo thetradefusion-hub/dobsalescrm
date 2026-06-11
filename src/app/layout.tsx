@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import { BRAND_DESCRIPTION, BRAND_NAME } from "@/lib/brand";
+import { BRAND_DESCRIPTION, BRAND_NAME, BRAND_SHORT_NAME } from "@/lib/brand";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemedToaster } from "@/components/themed-toaster";
 import "./globals.css";
@@ -16,13 +16,19 @@ export const metadata: Metadata = {
     template: `%s | ${BRAND_NAME}`,
   },
   description: BRAND_DESCRIPTION,
-  manifest: "/manifest.json",
   robots: {
     index: false,
     follow: false,
   },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: BRAND_SHORT_NAME,
+  },
   icons: {
     icon: [{ url: "/icon" }],
+    apple: [{ url: "/apple-icon", sizes: "180x180", type: "image/png" }],
   },
   formatDetection: {
     email: false,
@@ -37,6 +43,7 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: dark)", color: "#111B21" },
   ],
   colorScheme: "light dark",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

@@ -4,16 +4,9 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Conversation, ConversationStatus } from "@/types";
-import { Search, ChevronDown } from "lucide-react";
+import { Search } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ConversationListProps {
@@ -46,18 +39,6 @@ export function ConversationList({
   const [filter, setFilter] = useState<ConversationStatus | "all">("all");
   const [loading, setLoading] = useState(true);
 
-  // Keep the latest callback in a ref so the fetch effect below can
-  // have a stable, empty-dep identity. Previously the fetch useCallback
-  // depended on `onConversationsLoaded`, which depends on the parent's
-  // `deepLinkConvId` — so every URL change (including one the parent
-  // triggered via router.replace after a click) caused a fresh
-  // conversations fetch. That extra refetch was the trigger for the
-  // deep-link auto-select running a second time and wiping the active
-  // thread's messages.
-  // Mutation lives in an effect (not render) per React 19's refs rule;
-  // the fetch runs once on mount so it's fine to read the slightly
-  // older value — the very next render updates the ref for any
-  // subsequent async completion.
   const onConversationsLoadedRef = useRef(onConversationsLoaded);
   useEffect(() => {
     onConversationsLoadedRef.current = onConversationsLoaded;
@@ -76,7 +57,6 @@ export function ConversationList({
       if (cancelled) return;
 
       if (error) {
-        // Supabase errors have non-enumerable properties — log fields explicitly
         console.error("Failed to fetch conversations:", {
           message: error.message,
           details: error.details,
@@ -116,75 +96,90 @@ export function ConversationList({
     return result;
   }, [conversations, filter, search]);
 
+  const unreadTotal = useMemo(
+    () => conversations.reduce((n, c) => n + (c.unread_count > 0 ? 1 : 0), 0),
+    [conversations],
+  );
+
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setSearch(e.target.value);
     },
-    []
+    [],
   );
 
   const handleSelect = useCallback(
     (conv: Conversation) => {
       onSelect(conv);
     },
-    [onSelect]
+    [onSelect],
   );
 
-  const activeFilter = FILTER_OPTIONS.find((o) => o.value === filter);
-
   return (
-    // w-full on mobile so the list occupies the whole viewport when it's
-    // the single pane showing; fixed 320px on desktop where it shares the
-    // row with the thread + contact sidebar.
-    <div className="flex h-full w-full flex-col border-r border-wa-border bg-wa-panel lg:w-80">
-      {/* Search + Filter */}
-      <div className="space-y-2 border-b border-wa-border p-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-wa-muted/80" />
-          <Input
-            value={search}
-            onChange={handleSearchChange}
-            placeholder="Search conversations..."
-            className="border-wa-border bg-wa-surface pl-9 text-sm text-wa-text placeholder:text-wa-muted/80 focus:border-wa-green/50"
-          />
+    <div className="flex h-full w-full min-w-0 flex-col bg-wa-panel lg:w-80 lg:shrink-0 lg:border-r lg:border-wa-border">
+      {/* Mobile app header */}
+      <div className="shrink-0 border-b border-wa-border/80 wa-mobile-shell lg:bg-wa-panel">
+        <div className="h-0.5 bg-gradient-to-r from-wa-green via-wa-teal to-wa-read lg:hidden" aria-hidden />
+        <div className="flex items-center justify-between px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] lg:px-3 lg:pt-3">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-wa-text lg:text-base lg:font-semibold">
+              Chats
+            </h1>
+            {unreadTotal > 0 ? (
+              <p className="text-xs font-medium text-wa-green lg:hidden">
+                {unreadTotal} unread
+              </p>
+            ) : (
+              <p className="text-xs text-wa-muted lg:hidden">
+                WhatsApp conversations
+              </p>
+            )}
+          </div>
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger className="inline-flex items-center justify-center h-7 gap-1 px-2 text-xs text-wa-muted hover:text-wa-text rounded-md hover:bg-wa-surface">
-              {activeFilter?.label ?? "All"}
-              <ChevronDown className="h-3 w-3" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="start"
-            className="border-wa-border bg-wa-surface"
-          >
+        <div className="space-y-2 px-4 pb-3 lg:px-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-wa-muted" />
+            <Input
+              value={search}
+              onChange={handleSearchChange}
+              placeholder="Search chats..."
+              className="h-11 rounded-2xl border-wa-border/80 bg-wa-surface/90 pl-9 text-sm text-wa-text shadow-sm placeholder:text-wa-muted focus:border-wa-green/50 lg:h-10 lg:rounded-xl"
+            />
+          </div>
+
+          {/* Filter pills — mobile app style */}
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {FILTER_OPTIONS.map((opt) => (
-              <DropdownMenuItem
+              <button
                 key={opt.value}
+                type="button"
                 onClick={() => setFilter(opt.value)}
                 className={cn(
-                  "text-sm",
+                  "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
                   filter === opt.value
-                    ? "text-wa-green"
-                    : "text-wa-text/90"
+                    ? "bg-wa-green text-white"
+                    : "bg-wa-surface text-wa-muted active:bg-wa-elevated",
                 )}
               >
                 {opt.label}
-              </DropdownMenuItem>
+              </button>
             ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </div>
+        </div>
       </div>
 
-      {/* Conversation Items */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="min-h-0 flex-1">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-wa-green border-t-transparent" />
+          <div className="flex items-center justify-center py-16">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-wa-green border-t-transparent" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="px-4 py-12 text-center">
-            <p className="text-sm text-wa-muted/80">No conversations found</p>
+          <div className="px-4 py-16 text-center">
+            <p className="text-sm font-medium text-wa-text">No chats found</p>
+            <p className="mt-1 text-xs text-wa-muted">
+              {search.trim() ? "Try a different search" : "New messages will appear here"}
+            </p>
           </div>
         ) : (
           <div className="flex flex-col">
@@ -228,53 +223,72 @@ function ConversationItem({
       })
     : "";
 
+  const hasUnread = conversation.unread_count > 0;
+
   return (
     <button
+      type="button"
       onClick={handleClick}
       className={cn(
-        "flex w-full items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-wa-surface/50",
-        isActive && "border-l-2 border-wa-green bg-wa-surface/70"
+        "flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-wa-surface lg:px-3 lg:py-3",
+        isActive && "bg-wa-surface/80 lg:border-l-2 lg:border-wa-green",
+        !isActive && "hover:bg-wa-surface/50",
       )}
     >
-      {/* Avatar */}
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-wa-elevated text-sm font-medium text-wa-text">
-        {contact?.avatar_url ? (
-          <img
-            src={contact.avatar_url}
-            alt={displayName}
-            className="h-10 w-10 rounded-full object-cover"
-          />
-        ) : (
-          initials
-        )}
+      <div className="relative shrink-0">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-wa-elevated text-base font-semibold text-wa-text lg:h-10 lg:w-10 lg:text-sm">
+          {contact?.avatar_url ? (
+            <img
+              src={contact.avatar_url}
+              alt={displayName}
+              className="h-12 w-12 rounded-full object-cover lg:h-10 lg:w-10"
+            />
+          ) : (
+            initials
+          )}
+        </div>
+        <span
+          className={cn(
+            "absolute bottom-0 right-0 h-3 w-3 rounded-full ring-2 ring-wa-panel",
+            STATUS_COLORS[conversation.status],
+          )}
+          title={conversation.status}
+        />
       </div>
 
-      {/* Content */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-sm font-medium text-wa-text">
+      <div className="min-w-0 flex-1 border-b border-wa-border/60 pb-3.5 lg:pb-0 lg:border-0">
+        <div className="flex items-baseline justify-between gap-2">
+          <span
+            className={cn(
+              "truncate text-[15px] lg:text-sm",
+              hasUnread ? "font-bold text-wa-text" : "font-medium text-wa-text",
+            )}
+          >
             {displayName}
           </span>
-          <span className="shrink-0 text-[10px] text-wa-muted/80">{timeAgo}</span>
+          <span
+            className={cn(
+              "shrink-0 text-[11px] tabular-nums",
+              hasUnread ? "font-semibold text-wa-green" : "text-wa-muted",
+            )}
+          >
+            {timeAgo}
+          </span>
         </div>
         <div className="mt-0.5 flex items-center justify-between gap-2">
-          <p className="truncate text-xs text-wa-muted">
+          <p
+            className={cn(
+              "truncate text-sm lg:text-xs",
+              hasUnread ? "font-medium text-wa-text" : "text-wa-muted",
+            )}
+          >
             {conversation.last_message_text || "No messages yet"}
           </p>
-          <div className="flex shrink-0 items-center gap-1.5">
-            {conversation.unread_count > 0 && (
-              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-wa-green px-1 text-[10px] font-bold text-white">
-                {conversation.unread_count}
-              </span>
-            )}
-            <span
-              className={cn(
-                "h-2 w-2 rounded-full",
-                STATUS_COLORS[conversation.status]
-              )}
-              title={conversation.status}
-            />
-          </div>
+          {hasUnread && (
+            <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-wa-green px-1.5 text-[11px] font-bold text-white">
+              {conversation.unread_count > 99 ? "99+" : conversation.unread_count}
+            </span>
+          )}
         </div>
       </div>
     </button>

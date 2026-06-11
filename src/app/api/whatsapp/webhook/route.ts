@@ -6,7 +6,6 @@ import { normalizePhone, phonesMatch } from '@/lib/whatsapp/phone-utils'
 import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
 import { runAutomationsForTrigger } from '@/lib/automations/engine'
 import { tryGlobalAiAutoReply } from '@/lib/ai/run-reply'
-import { sendPushNotificationsForMessage } from '@/lib/notifications/web-push'
 
 // Lazy-initialized to avoid build-time crash when env vars are missing
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -493,14 +492,6 @@ async function processMessage(
     conversationId: conversation.id,
     inboundText,
   }).catch((err) => console.error('[ai] auto-reply failed:', err))
-
-  // Dispatch Web Push notification to the registered browser endpoints
-  sendPushNotificationsForMessage({
-    userId,
-    contactName: contactRecord.name || contactRecord.phone,
-    contentText: contentText || `[${message.type}]`,
-    conversationId: conversation.id,
-  }).catch((err) => console.error('[push-notification] dispatch failed:', err))
 }
 
 async function parseMessageContent(

@@ -184,6 +184,11 @@
   html {
     @apply font-sans;
   }
+  html,
+  body {
+    @apply overflow-x-hidden;
+    max-width: 100%;
+  }
   body {
     @apply bg-background text-foreground;
   }
@@ -208,5 +213,67 @@
   }
   .wa-preview-chat {
     background-color: var(--wa-preview-bg);
+  }
+  .wa-inbox-wallpaper {
+    background-color: var(--wa-deep);
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      color-mix(in srgb, var(--wa-muted) 12%, transparent) 1px,
+      transparent 0
+    );
+    background-size: 18px 18px;
+  }
+  .wa-mobile-shell {
+    background:
+      radial-gradient(
+        ellipse 120% 80% at 50% -20%,
+        color-mix(in srgb, var(--wa-green) 14%, transparent),
+        transparent 55%
+      ),
+      var(--wa-deep);
+  }
+  .wa-glass-panel {
+    background: color-mix(in srgb, var(--wa-panel) 88%, transparent);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  .wa-slide-in-right {
+    animation: wa-slide-in-right 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .wa-slide-in-left {
+    animation: wa-slide-in-left 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .wa-fade-in {
+    animation: wa-fade-in 0.35s ease-out both;
+  }
+  @keyframes wa-slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes wa-slide-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(-18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes wa-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }

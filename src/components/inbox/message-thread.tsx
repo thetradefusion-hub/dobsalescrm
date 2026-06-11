@@ -19,6 +19,7 @@ import {
   Check,
   Clock,
   ArrowLeft,
+  User,
 } from "lucide-react";
 import { format, isToday, isYesterday, differenceInHours } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +34,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageBubble } from "./message-bubble";
 import { MessageComposer } from "./message-composer";
 import { TemplatePicker } from "./template-picker";
+import { ContactSidebar } from "./contact-sidebar";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { toast } from "sonner";
 
 function renderTemplateBody(body: string, params: string[]): string {
@@ -108,6 +116,7 @@ export function MessageThread({
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const [contactSheetOpen, setContactSheetOpen] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
 
   // Profiles are bounded by RLS to rows the current user is allowed to
@@ -389,15 +398,15 @@ export function MessageThread({
   // Empty state
   if (!conversation || !contact) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center bg-wa-deep">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-wa-surface">
+      <div className="flex flex-1 flex-col items-center justify-center bg-wa-deep wa-inbox-wallpaper">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-wa-panel shadow-sm">
           <MessageSquare className="h-8 w-8 text-wa-muted" />
         </div>
-        <h3 className="mt-4 text-sm font-medium text-wa-muted">
+        <h3 className="mt-4 text-sm font-medium text-wa-text">
           Select a conversation
         </h3>
-        <p className="mt-1 text-xs text-wa-muted">
-          Choose a conversation from the left to start messaging
+        <p className="mt-1 px-6 text-center text-xs text-wa-muted">
+          Choose a chat from the list to start messaging
         </p>
       </div>
     );
@@ -415,36 +424,46 @@ export function MessageThread({
     : "Assign";
 
   return (
-    <div className="flex flex-1 flex-col bg-wa-deep">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-2 border-b border-wa-border bg-wa-panel px-3 py-3 sm:px-4">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          {/* Back-to-list button — mobile only. Hidden on lg+ where the
-              conversation list is always visible next to the thread. */}
+    <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col bg-wa-deep">
+      {/* Chat header — WhatsApp-style sticky bar */}
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-wa-border bg-wa-header/95 px-2 py-2 backdrop-blur-md sm:px-3 lg:bg-wa-panel lg:px-4 lg:py-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           {onBack && (
             <button
               type="button"
               onClick={onBack}
               aria-label="Back to conversations"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-wa-text/90 hover:bg-wa-surface hover:text-wa-text lg:hidden"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-wa-text active:bg-wa-surface lg:hidden"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
           )}
-          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-wa-elevated text-sm font-medium text-wa-text">
-            {displayName.charAt(0).toUpperCase()}
-          </div>
-          <div className="min-w-0">
-            <h2 className="truncate text-sm font-semibold text-wa-text">{displayName}</h2>
-            <p className="truncate text-xs text-wa-muted">{contact.phone}</p>
-          </div>
-          {/* Session timer badge — hidden on the narrowest phones so
-              the name + back arrow keep their room. */}
+          <button
+            type="button"
+            onClick={() => setContactSheetOpen(true)}
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left active:bg-wa-surface/80 lg:pointer-events-none lg:active:bg-transparent"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-wa-elevated text-sm font-semibold text-wa-text">
+              {displayName.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <h2 className="truncate text-base font-semibold text-wa-text lg:text-sm">
+                {displayName}
+              </h2>
+              <p className="truncate text-xs text-wa-muted">
+                {contact.phone}
+                <span className="hidden sm:inline">
+                  {" · "}
+                  {sessionInfo.expired ? "Session expired" : sessionInfo.remaining}
+                </span>
+              </p>
+            </div>
+          </button>
           <Badge
             variant="outline"
             className={cn(
-              "ml-1 hidden gap-1 border-wa-border text-[10px] sm:inline-flex sm:ml-2",
-              sessionInfo.expired ? "text-red-400" : "text-wa-green"
+              "hidden shrink-0 gap-1 border-wa-border text-[10px] lg:inline-flex",
+              sessionInfo.expired ? "text-red-500 dark:text-red-400" : "text-wa-green",
             )}
           >
             <Clock className="h-3 w-3" />
@@ -452,8 +471,18 @@ export function MessageThread({
           </Badge>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Status dropdown */}
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+          <button
+            type="button"
+            onClick={() => setContactSheetOpen(true)}
+            aria-label="Contact info"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-wa-muted active:bg-wa-surface lg:hidden"
+          >
+            <User className="h-5 w-5" />
+          </button>
+
+          <div className="hidden items-center gap-0.5 lg:flex">
+          {/* Status dropdown — desktop only; mobile uses contact sheet */}
           <DropdownMenu>
             <DropdownMenuTrigger className={cn(
                   "inline-flex items-center justify-center h-7 gap-1 px-2 text-xs rounded-md hover:bg-wa-surface",
@@ -532,11 +561,15 @@ export function MessageThread({
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
       </div>
 
-      {/* Messages Area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
+      {/* Messages */}
+      <div
+        ref={scrollRef}
+        className="wa-inbox-wallpaper min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-3 py-3 sm:px-4 sm:py-4"
+      >
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-wa-green border-t-transparent" />
@@ -583,6 +616,21 @@ export function MessageThread({
         onOpenChange={setTemplateModalOpen}
         onSelect={handleSendTemplate}
       />
+
+      {/* Mobile contact drawer */}
+      <Sheet open={contactSheetOpen} onOpenChange={setContactSheetOpen}>
+        <SheetContent
+          side="bottom"
+          className="h-[85dvh] max-h-[85dvh] rounded-t-2xl border-wa-border bg-wa-panel p-0 lg:hidden"
+        >
+          <SheetHeader className="border-b border-wa-border px-4 py-3 text-left">
+            <SheetTitle className="text-wa-text">Contact info</SheetTitle>
+          </SheetHeader>
+          <div className="h-[calc(85dvh-3.5rem)] overflow-hidden">
+            <ContactSidebar contact={contact} variant="sheet" />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

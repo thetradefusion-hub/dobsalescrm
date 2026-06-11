@@ -1,16 +1,17 @@
 'use client'
 
 import { useEffect } from 'react'
+import type { BeforeInstallPromptEvent } from '@/lib/pwa'
 
 declare global {
   interface Window {
-    deferredPrompt?: any
+    deferredPrompt?: BeforeInstallPromptEvent
   }
 }
 
 export function PushInitializer() {
   useEffect(() => {
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
+    if ('serviceWorker' in navigator) {
       navigator.serviceWorker
         .register('/sw.js')
         .then((reg) => {
@@ -23,7 +24,7 @@ export function PushInitializer() {
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault()
-      window.deferredPrompt = e
+      window.deferredPrompt = e as BeforeInstallPromptEvent
       window.dispatchEvent(new CustomEvent('pwa-install-ready', { detail: true }))
     }
 
@@ -36,4 +37,3 @@ export function PushInitializer() {
 
   return null
 }
-

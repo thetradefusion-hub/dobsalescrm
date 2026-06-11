@@ -28,8 +28,8 @@ export function ResponseTimeChart({
   const hasData = data?.buckets.some((b) => b.avgMinutes != null) ?? false
 
   return (
-    <section className="rounded-xl border border-wa-border bg-wa-panel">
-      <header className="flex items-center justify-between border-b border-wa-border px-5 py-4">
+    <section className="overflow-hidden rounded-2xl border border-wa-border bg-wa-panel shadow-sm lg:rounded-xl">
+      <header className="flex flex-col gap-2 border-b border-wa-border bg-wa-surface/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
         <div>
           <h2 className="text-sm font-semibold text-wa-text">
             Average First Response Time
@@ -55,7 +55,7 @@ export function ResponseTimeChart({
         )}
       </header>
 
-      <div className="p-5">
+      <div className="p-4 sm:p-5">
         {loading || !data ? (
           <Skeleton className="h-[220px] w-full" />
         ) : !hasData ? (

@@ -50,8 +50,8 @@ export function ConversationsChart({ series, loading, range, onRangeChange }: Co
   }, [data])
 
   return (
-    <section className="flex h-full flex-col rounded-xl border border-wa-border bg-wa-panel">
-      <header className="flex items-center justify-between border-b border-wa-border px-5 py-4">
+    <section className="flex h-full flex-col overflow-hidden rounded-2xl border border-wa-border bg-wa-panel shadow-sm lg:rounded-xl">
+      <header className="flex flex-col gap-3 border-b border-wa-border bg-wa-surface/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
         <div>
           <h2 className="text-sm font-semibold text-wa-text">Conversations Over Time</h2>
           <p className="mt-0.5 text-xs text-wa-muted/80">Daily message volume by direction</p>
@@ -75,7 +75,7 @@ export function ConversationsChart({ series, loading, range, onRangeChange }: Co
         </div>
       </header>
 
-      <div className="p-5">
+      <div className="p-4 sm:p-5">
         {loading || !data ? (
           <Skeleton className="h-[240px] w-full" />
         ) : data.every((p) => p.incoming === 0 && p.outgoing === 0) ? (
