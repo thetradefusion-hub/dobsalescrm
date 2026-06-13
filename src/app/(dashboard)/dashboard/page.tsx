@@ -106,6 +106,8 @@ export default function DashboardPage() {
   }, [range])
 
   useEffect(() => {
+    // Initial dashboard load — fetch once on mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loadAll batches async setState after awaits
     loadAll()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps -- initial load only
 

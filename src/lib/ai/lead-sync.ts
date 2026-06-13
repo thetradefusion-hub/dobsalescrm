@@ -339,7 +339,7 @@ async function syncTemperatureTags(
   const allTags = Object.values(TEMPERATURE_TAG_NAMES)
 
   for (const name of allTags) {
-    let tagId = await findOrCreateTag(userId, name)
+    const tagId = await findOrCreateTag(userId, name)
     if (!tagId) continue
 
     if (name === activeTag) {

@@ -96,9 +96,9 @@ export function PushNotificationsCard() {
 
       setIsSubscribed(true)
       toast.success('Push notifications successfully enabled!')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[subscribe] Failed:', err)
-      toast.error(err.message || 'Failed to enable notifications.')
+      toast.error(err instanceof Error ? err.message : 'Failed to enable notifications.')
     } finally {
       setActionLoading(false)
     }
@@ -127,9 +127,9 @@ export function PushNotificationsCard() {
 
       setIsSubscribed(false)
       toast.success('Notifications successfully disabled.')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[unsubscribe] Failed:', err)
-      toast.error(err.message || 'Failed to disable notifications.')
+      toast.error(err instanceof Error ? err.message : 'Failed to disable notifications.')
     } finally {
       setActionLoading(false)
     }

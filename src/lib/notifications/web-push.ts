@@ -78,14 +78,18 @@ export async function sendPushNotificationsForMessage({
           keys: sub.keys as { p256dh: string; auth: string },
         }
         await webpush.sendNotification(subscriptionObj, payload)
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(
           '[web-push] Failed to send notification to endpoint:',
           sub.endpoint,
           err
         )
+        const statusCode =
+          err && typeof err === 'object' && 'statusCode' in err
+            ? Number((err as { statusCode?: number }).statusCode)
+            : undefined
         // If subscription is no longer valid (410 Gone or 404 Not Found), delete it
-        if (err.statusCode === 410 || err.statusCode === 404) {
+        if (statusCode === 410 || statusCode === 404) {
           console.log('[web-push] Subscription has expired or is invalid. Deleting from DB…')
           const { error: delErr } = await admin
             .from('push_subscriptions')
