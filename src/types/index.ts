@@ -227,6 +227,7 @@ export type AutomationTriggerType =
 
 export type AutomationStepType =
   | 'send_message'
+  | 'send_interactive_menu'
   | 'send_template'
   | 'ai_reply'
   | 'add_tag'
@@ -284,6 +285,16 @@ export type AutomationTriggerConfig =
 
 export interface SendMessageStepConfig {
   text: string;
+}
+
+export interface SendInteractiveMenuStepConfig {
+  menu_type: 'buttons' | 'list';
+  body: string;
+  header?: string;
+  footer?: string;
+  /** List menu only — label on the open button (max 20 chars). */
+  list_button_text?: string;
+  options: { id: string; title: string; description?: string }[];
 }
 
 /** Uses global AI settings; optional per-step system prompt override. */
@@ -345,6 +356,7 @@ export interface SendWebhookStepConfig {
 
 export type AutomationStepConfig =
   | SendMessageStepConfig
+  | SendInteractiveMenuStepConfig
   | AiReplyStepConfig
   | SendTemplateStepConfig
   | TagStepConfig

@@ -42,6 +42,41 @@ describe("validateStepsForActivation", () => {
     ]);
   });
 
+  it("validates interactive menu step config", () => {
+    const issues = validateStepsForActivation([
+      {
+        step_type: "send_interactive_menu",
+        step_config: { menu_type: "buttons", body: "", options: [] },
+      },
+      {
+        step_type: "send_interactive_menu",
+        step_config: {
+          menu_type: "buttons",
+          body: "Pick one",
+          options: [
+            { id: "a", title: "A" },
+            { id: "b", title: "B" },
+            { id: "c", title: "C" },
+            { id: "d", title: "D" },
+          ],
+        },
+      },
+    ]);
+    expect(issues.some((i) => i.message.includes("body is required"))).toBe(true);
+    expect(issues.some((i) => i.message.includes("max 3 buttons"))).toBe(true);
+    const ok = validateStepsForActivation([
+      {
+        step_type: "send_interactive_menu",
+        step_config: {
+          menu_type: "buttons",
+          body: "Hello",
+          options: [{ id: "sales", title: "Sales" }],
+        },
+      },
+    ]);
+    expect(ok).toEqual([]);
+  });
+
   it("checks wait amount and unit boundaries", () => {
     const issues = validateStepsForActivation([
       { step_type: "wait", step_config: { amount: 0, unit: "minutes" } },

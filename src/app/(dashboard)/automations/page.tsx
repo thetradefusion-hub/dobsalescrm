@@ -16,6 +16,7 @@ import {
   Users,
   PhoneCall,
   Loader2,
+  Store,
 } from "lucide-react"
 
 import { createClient } from "@/lib/supabase/client"
@@ -38,6 +39,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { AUTOMATION_TEMPLATES, type TemplateSlug } from "@/lib/automations/templates"
+import { ANAND_RADIO_HOUSE_PACK_PREFIX } from "@/lib/automations/packs/anand-radio-house"
 import { triggerMeta, formatRelative } from "@/lib/automations/trigger-meta"
 import { cn } from "@/lib/utils"
 
@@ -63,6 +65,11 @@ export default function AutomationsPage() {
   const [error, setError] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<Automation | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [importingPack, setImportingPack] = useState(false)
+
+  const hasAnandPack = automations?.some((a) =>
+    a.name.startsWith(ANAND_RADIO_HOUSE_PACK_PREFIX),
+  )
 
   async function load() {
     try {
@@ -134,6 +141,30 @@ export default function AutomationsPage() {
     router.push(`/automations/new?template=${slug}`)
   }
 
+  async function importAnandRadioHouse(replace = false) {
+    setImportingPack(true)
+    try {
+      const res = await fetch("/api/automations/import-pack", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ pack: "anand_radio_house", replace }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(body?.error ?? body?.errors?.[0] ?? "Import failed")
+        return
+      }
+      toast.success(
+        `Imported ${body.created} automations for Anand Radio House`,
+      )
+      await load()
+    } catch {
+      toast.error("Import failed")
+    } finally {
+      setImportingPack(false)
+    }
+  }
+
   if (error) {
     return (
       <div className="flex h-64 flex-col items-center justify-center gap-2">
@@ -172,6 +203,43 @@ export default function AutomationsPage() {
           Create Automation
         </Button>
       </div>
+
+      <section className="rounded-xl border border-wa-green/30 bg-gradient-to-br from-wa-green/5 to-wa-panel p-4 md:p-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-wa-green/15 text-wa-green">
+              <Store className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-wa-text">
+                Anand Radio House — Sales Assistant
+              </h2>
+              <p className="mt-1 max-w-2xl text-xs text-wa-muted">
+                Complete chatbot: welcome menu, electronics & furniture enquiry,
+                EMI, offers, service, store location, 100+ FAQ replies & lead
+                capture. One-click import — 50+ automations, all active.
+              </p>
+              {hasAnandPack && (
+                <p className="mt-1 text-xs text-wa-green">
+                  Pack already installed. Re-import replaces existing ARH automations.
+                </p>
+              )}
+            </div>
+          </div>
+          <Button
+            disabled={importingPack}
+            onClick={() => importAnandRadioHouse(hasAnandPack)}
+            className="shrink-0 bg-wa-green text-white hover:bg-wa-teal"
+          >
+            {importingPack ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Store className="h-4 w-4" />
+            )}
+            {hasAnandPack ? "Re-import Pack" : "Import Pack"}
+          </Button>
+        </div>
+      </section>
 
       {showTemplates && (
         <section>

@@ -1,4 +1,8 @@
 import type { AutomationTriggerType } from '@/types'
+import {
+  normalizeInteractiveMenu,
+  validateInteractiveMenu,
+} from '@/lib/whatsapp/interactive-menu'
 
 // ------------------------------------------------------------
 // Pre-flight config validation for automations about to be activated.
@@ -58,6 +62,28 @@ function validateOne(step: StepLike, path: string, issues: ValidationIssue[]): v
         issues.push({ path: `${path}.text`, message: 'message text is required' })
       }
       break
+    case 'send_interactive_menu': {
+      const menu = normalizeInteractiveMenu({
+        menu_type: c.menu_type === 'list' ? 'list' : 'buttons',
+        body: String(c.body ?? ''),
+        header: c.header ? String(c.header) : undefined,
+        footer: c.footer ? String(c.footer) : undefined,
+        list_button_text: c.list_button_text ? String(c.list_button_text) : undefined,
+        options: Array.isArray(c.options)
+          ? (c.options as { id?: string; title?: string; description?: string }[]).map(
+              (o) => ({
+                id: String(o.id ?? ''),
+                title: String(o.title ?? ''),
+                description: o.description ? String(o.description) : undefined,
+              }),
+            )
+          : [],
+      })
+      for (const msg of validateInteractiveMenu(menu)) {
+        issues.push({ path: `${path}.menu`, message: msg })
+      }
+      break
+    }
     case 'ai_reply':
       // API key + global config validated at activation time via validateAiConfigured.
       break

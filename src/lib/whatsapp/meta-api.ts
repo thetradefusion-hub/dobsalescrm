@@ -167,6 +167,86 @@ export async function sendTemplateMessage(
   return { messageId: data.messages[0].id }
 }
 
+export interface SendInteractiveMenuArgs {
+  phoneNumberId: string
+  accessToken: string
+  to: string
+  menu_type: 'buttons' | 'list'
+  body: string
+  header?: string
+  footer?: string
+  list_button_text?: string
+  options: Array<{ id: string; title: string; description?: string }>
+}
+
+/**
+ * Send WhatsApp interactive reply buttons (max 3) or a list menu (max 10 rows).
+ * Works inside the 24-hour customer service window.
+ */
+export async function sendInteractiveMenu(
+  args: SendInteractiveMenuArgs,
+): Promise<MetaSendResult> {
+  const { phoneNumberId, accessToken, to, menu_type, body, header, footer, options } =
+    args
+
+  const interactive: Record<string, unknown> = {
+    type: menu_type === 'list' ? 'list' : 'button',
+    body: { text: body },
+  }
+
+  if (header?.trim()) {
+    interactive.header = { type: 'text', text: header.trim() }
+  }
+  if (footer?.trim()) {
+    interactive.footer = { text: footer.trim() }
+  }
+
+  if (menu_type === 'list') {
+    interactive.action = {
+      button: (args.list_button_text ?? 'View options').slice(0, 20),
+      sections: [
+        {
+          title: 'Options',
+          rows: options.map((o) => ({
+            id: o.id,
+            title: o.title,
+            ...(o.description ? { description: o.description } : {}),
+          })),
+        },
+      ],
+    }
+  } else {
+    interactive.action = {
+      buttons: options.map((o) => ({
+        type: 'reply',
+        reply: { id: o.id, title: o.title },
+      })),
+    }
+  }
+
+  const url = `${META_API_BASE}/${phoneNumberId}/messages`
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to,
+      type: 'interactive',
+      interactive,
+    }),
+  })
+
+  if (!response.ok) {
+    await throwMetaError(response, `Meta interactive menu error: ${response.status}`)
+  }
+  const data = await response.json()
+  return { messageId: data.messages[0].id }
+}
+
 // ============================================================
 // Media
 // ============================================================

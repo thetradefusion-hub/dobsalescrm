@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import {
+  getSupabasePublicConfig,
+  isSupabaseConfigError,
+} from "@/lib/supabase/config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +21,7 @@ import {
 import { Loader2, LogIn } from "lucide-react";
 import { BRAND_NAME } from "@/lib/brand";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { PasswordInput } from "@/components/auth/password-input";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -24,25 +29,69 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
+  const searchParams = useSearchParams();
+
+  const configError = useMemo(() => {
+    const config = getSupabasePublicConfig();
+    return isSupabaseConfigError(config) ? config.error : null;
+  }, []);
+
+  const supabase = useMemo(() => {
+    if (configError) return null;
+    try {
+      return createClient();
+    } catch (err) {
+      return null;
+    }
+  }, [configError]);
+
+  useEffect(() => {
+    if (searchParams.get("error") === "supabase_unreachable") {
+      setError(
+        "Cannot reach Supabase. Your project URL may be wrong, or the project is paused/deleted. Update NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local (or Vercel env vars), then restart the dev server.",
+      );
+    } else if (configError) {
+      setError(configError);
+    }
+  }, [searchParams, configError]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      setError(error.message);
+    if (!supabase) {
+      setError(
+        configError ??
+          "Supabase is not configured. Check NEXT_PUBLIC_SUPABASE_URL in your environment.",
+      );
       setLoading(false);
       return;
     }
 
-    router.push("/dashboard");
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        setError(
+          signInError.message.includes("fetch")
+            ? "Cannot reach Supabase. Verify your project URL in Supabase Dashboard → Project Settings → API, then update .env.local and restart."
+            : signInError.message,
+        );
+        setLoading(false);
+        return;
+      }
+
+      router.push("/dashboard");
+    } catch {
+      setError(
+        "Network error — cannot reach Supabase. Check your internet connection and that the Supabase project is active.",
+      );
+      setLoading(false);
+    }
   };
 
   return (
@@ -98,15 +147,13 @@ export default function LoginPage() {
                   Forgot password?
                 </Link>
               </div>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 autoComplete="current-password"
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="h-10 border-wa-border bg-wa-surface text-wa-text placeholder:text-wa-muted focus-visible:border-wa-green focus-visible:ring-wa-green/25"
               />
             </div>
 

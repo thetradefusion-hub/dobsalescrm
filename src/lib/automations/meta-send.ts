@@ -1,4 +1,9 @@
-import { sendTextMessage, sendTemplateMessage } from '@/lib/whatsapp/meta-api'
+import { sendTextMessage, sendTemplateMessage, sendInteractiveMenu } from '@/lib/whatsapp/meta-api'
+import {
+  normalizeInteractiveMenu,
+  summarizeInteractiveMenu,
+  type InteractiveMenuPayload,
+} from '@/lib/whatsapp/interactive-menu'
 import { decrypt } from '@/lib/whatsapp/encryption'
 import {
   sanitizePhoneForMeta,
@@ -45,9 +50,16 @@ export async function engineSendTemplate(
   return sendViaMeta({ ...args, kind: 'template' })
 }
 
+export async function engineSendInteractiveMenu(
+  args: SendTextArgs & { menu: InteractiveMenuPayload },
+): Promise<{ whatsapp_message_id: string }> {
+  return sendViaMeta({ ...args, kind: 'interactive', menu: args.menu })
+}
+
 type SendInput =
   | (SendTextArgs & { kind: 'text' })
   | (SendTemplateArgs & { kind: 'template' })
+  | (SendTextArgs & { kind: 'interactive'; menu: InteractiveMenuPayload })
 
 async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: string }> {
   const db = supabaseAdmin()
@@ -98,6 +110,21 @@ async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: str
       })
       return r.messageId
     }
+    if (input.kind === 'interactive') {
+      const menu = normalizeInteractiveMenu(input.menu)
+      const r = await sendInteractiveMenu({
+        phoneNumberId: config.phone_number_id,
+        accessToken,
+        to: phone,
+        menu_type: menu.menu_type,
+        body: menu.body,
+        header: menu.header,
+        footer: menu.footer,
+        list_button_text: menu.list_button_text,
+        options: menu.options,
+      })
+      return r.messageId
+    }
     const r = await sendTextMessage({
       phoneNumberId: config.phone_number_id,
       accessToken,
@@ -136,7 +163,12 @@ async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: str
   // Meta message id. sender_type='bot' distinguishes automation sends
   // from manual agent sends.
   const content_type = input.kind === 'template' ? 'template' : 'text'
-  const content_text = input.kind === 'text' ? input.text : null
+  const content_text =
+    input.kind === 'text'
+      ? input.text
+      : input.kind === 'interactive'
+        ? summarizeInteractiveMenu(normalizeInteractiveMenu(input.menu))
+        : null
   const template_name = input.kind === 'template' ? input.templateName : null
 
   const { error: msgErr } = await db.from('messages').insert({
@@ -158,7 +190,11 @@ async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: str
     .from('conversations')
     .update({
       last_message_text:
-        input.kind === 'template' ? `[template:${input.templateName}]` : input.text,
+        input.kind === 'template'
+          ? `[template:${input.templateName}]`
+          : input.kind === 'interactive'
+            ? summarizeInteractiveMenu(normalizeInteractiveMenu(input.menu))
+            : input.text,
       last_message_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })

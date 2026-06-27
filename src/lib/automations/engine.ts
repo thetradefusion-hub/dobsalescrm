@@ -6,6 +6,7 @@ import type {
   ConditionStepConfig,
   KeywordMatchTriggerConfig,
   SendMessageStepConfig,
+  SendInteractiveMenuStepConfig,
   SendTemplateStepConfig,
   SendWebhookStepConfig,
   TagStepConfig,
@@ -16,7 +17,11 @@ import type {
   AiReplyStepConfig,
 } from '@/types'
 import { supabaseAdmin } from './admin-client'
-import { engineSendText, engineSendTemplate } from './meta-send'
+import { engineSendText, engineSendTemplate, engineSendInteractiveMenu } from './meta-send'
+import {
+  normalizeInteractiveMenu,
+  validateInteractiveMenu,
+} from '@/lib/whatsapp/interactive-menu'
 import { runAiReply } from '@/lib/ai/run-reply'
 import { DEFAULT_DEAL_CURRENCY } from '@/lib/currency'
 
@@ -328,6 +333,36 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
         text,
       })
       return `sent via Meta (${whatsapp_message_id})`
+    }
+
+    case 'send_interactive_menu': {
+      const cfg = step.step_config as SendInteractiveMenuStepConfig
+      if (!args.contactId) throw new Error('send_interactive_menu needs a contact')
+      const menu = normalizeInteractiveMenu({
+        menu_type: cfg.menu_type ?? 'buttons',
+        body: interpolate(cfg.body ?? '', args),
+        header: cfg.header ? interpolate(cfg.header, args) : undefined,
+        footer: cfg.footer ? interpolate(cfg.footer, args) : undefined,
+        list_button_text: cfg.list_button_text,
+        options: (cfg.options ?? []).map((o) => ({
+          id: String(o.id ?? '').trim(),
+          title: interpolate(String(o.title ?? ''), args),
+          description: o.description
+            ? interpolate(String(o.description), args)
+            : undefined,
+        })),
+      })
+      const menuErrors = validateInteractiveMenu(menu)
+      if (menuErrors.length) throw new Error(menuErrors.join('; '))
+      const conversationId = await resolveConversationId(args)
+      const { whatsapp_message_id } = await engineSendInteractiveMenu({
+        userId: args.automation.user_id,
+        conversationId,
+        contactId: args.contactId,
+        text: '',
+        menu,
+      })
+      return `interactive menu sent via Meta (${whatsapp_message_id})`
     }
 
     case 'send_template': {

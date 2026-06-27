@@ -33,6 +33,11 @@ interface WhatsAppMessage {
   sticker?: { id: string; mime_type: string }
   location?: { latitude: number; longitude: number; name?: string; address?: string }
   reaction?: { message_id: string; emoji: string }
+  interactive?: {
+    type: 'button_reply' | 'list_reply'
+    button_reply?: { id: string; title: string }
+    list_reply?: { id: string; title: string; description?: string }
+  }
 }
 
 interface WhatsAppWebhookEntry {
@@ -164,10 +169,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  // Process asynchronously so we can ack Meta within their timeout.
-  processWebhook(body).catch((error) => {
+  // Process webhook before ack — Meta allows several seconds. If we return
+  // 200 immediately, Next.js can tear down the request before automations
+  // finish sending replies (especially in dev).
+  try {
+    await processWebhook(body)
+  } catch (error) {
     console.error('Error processing webhook:', error)
-  })
+  }
 
   return NextResponse.json({ status: 'received' }, { status: 200 })
 }
@@ -362,7 +371,7 @@ async function processMessage(
   const contactName = contact.profile.name
 
   // Parse message content based on type
-  const { contentText, mediaUrl, mediaType } = await parseMessageContent(
+  const { contentText, replyOptionId, mediaUrl, mediaType } = await parseMessageContent(
     message,
     accessToken
   )
@@ -457,7 +466,7 @@ async function processMessage(
   // message all exist before any step — including send_message — runs.
   // Fire-and-forget: a slow or failing automation must not block the
   // webhook's 200 OK response to Meta.
-  const inboundText = contentText ?? message.text?.body ?? ''
+  const inboundText = replyOptionId ?? contentText ?? message.text?.body ?? ''
   const automationTriggers: (
     | 'new_contact_created'
     | 'first_inbound_message'
@@ -472,17 +481,19 @@ async function processMessage(
   // listens to only one trigger runs only when that trigger matches.
   if (contactOutcome.wasCreated) automationTriggers.unshift('new_contact_created')
   if (isFirstInboundMessage) automationTriggers.unshift('first_inbound_message')
-  for (const triggerType of automationTriggers) {
-    runAutomationsForTrigger({
-      userId,
-      triggerType,
-      contactId: contactRecord.id,
-      context: {
-        message_text: inboundText,
-        conversation_id: conversation.id,
-      },
-    }).catch((err) => console.error('[automations] dispatch failed:', err))
-  }
+  await Promise.all(
+    automationTriggers.map((triggerType) =>
+      runAutomationsForTrigger({
+        userId,
+        triggerType,
+        contactId: contactRecord.id,
+        context: {
+          message_text: inboundText,
+          conversation_id: conversation.id,
+        },
+      }),
+    ),
+  ).catch((err) => console.error('[automations] dispatch failed:', err))
 
   // Optional global AI auto-reply (Settings → AI). Runs after automations
   // so fixed automations fire first; skip if assigned when configured.
@@ -499,6 +510,8 @@ async function parseMessageContent(
   accessToken: string
 ): Promise<{
   contentText: string | null
+  /** Stable option id from button/list tap — used for keyword_match automations. */
+  replyOptionId: string | null
   mediaUrl: string | null
   mediaType: string | null
 }> {
@@ -525,50 +538,71 @@ async function parseMessageContent(
     case 'text':
       return {
         contentText: message.text?.body || null,
+        replyOptionId: null,
         mediaUrl: null,
         mediaType: null,
       }
+
+    case 'interactive': {
+      const reply =
+        message.interactive?.type === 'list_reply'
+          ? message.interactive.list_reply
+          : message.interactive?.button_reply
+      if (reply?.id) {
+        return {
+          contentText: reply.title || reply.id,
+          replyOptionId: reply.id,
+          mediaUrl: null,
+          mediaType: null,
+        }
+      }
+      return { contentText: null, replyOptionId: null, mediaUrl: null, mediaType: null }
+    }
 
     case 'image':
       if (message.image?.id) {
         return {
           contentText: message.image.caption || null,
+          replyOptionId: null,
           mediaUrl: await verifyAndBuildUrl(message.image.id),
           mediaType: message.image.mime_type,
         }
       }
-      return { contentText: null, mediaUrl: null, mediaType: null }
+      return { contentText: null, replyOptionId: null, mediaUrl: null, mediaType: null }
 
     case 'video':
       if (message.video?.id) {
         return {
           contentText: message.video.caption || null,
+          replyOptionId: null,
           mediaUrl: await verifyAndBuildUrl(message.video.id),
           mediaType: message.video.mime_type,
         }
       }
-      return { contentText: null, mediaUrl: null, mediaType: null }
+      return { contentText: null, replyOptionId: null, mediaUrl: null, mediaType: null }
 
     case 'document':
       if (message.document?.id) {
         return {
           contentText:
             message.document.caption || message.document.filename || null,
+          replyOptionId: null,
           mediaUrl: await verifyAndBuildUrl(message.document.id),
           mediaType: message.document.mime_type,
         }
       }
-      return { contentText: null, mediaUrl: null, mediaType: null }
+      return { contentText: null, replyOptionId: null, mediaUrl: null, mediaType: null }
 
     case 'audio':
       if (message.audio?.id) {
         return {
           contentText: null,
+          replyOptionId: null,
           mediaUrl: await verifyAndBuildUrl(message.audio.id),
           mediaType: message.audio.mime_type,
         }
       }
-      return { contentText: null, mediaUrl: null, mediaType: null }
+      return { contentText: null, replyOptionId: null, mediaUrl: null, mediaType: null }
 
     case 'sticker':
       // Stickers are images under the hood. Treat them as such so the
@@ -577,11 +611,12 @@ async function parseMessageContent(
       if (message.sticker?.id) {
         return {
           contentText: null,
+          replyOptionId: null,
           mediaUrl: await verifyAndBuildUrl(message.sticker.id),
           mediaType: message.sticker.mime_type,
         }
       }
-      return { contentText: null, mediaUrl: null, mediaType: null }
+      return { contentText: null, replyOptionId: null, mediaUrl: null, mediaType: null }
 
     case 'location':
       if (message.location) {
@@ -591,15 +626,17 @@ async function parseMessageContent(
           .join(' - ')
         return {
           contentText: locationText,
+          replyOptionId: null,
           mediaUrl: null,
           mediaType: null,
         }
       }
-      return { contentText: null, mediaUrl: null, mediaType: null }
+      return { contentText: null, replyOptionId: null, mediaUrl: null, mediaType: null }
 
     case 'reaction':
       return {
         contentText: message.reaction?.emoji || null,
+        replyOptionId: null,
         mediaUrl: null,
         mediaType: null,
       }
@@ -607,6 +644,7 @@ async function parseMessageContent(
     default:
       return {
         contentText: `[Unsupported message type: ${message.type}]`,
+        replyOptionId: null,
         mediaUrl: null,
         mediaType: null,
       }

@@ -22,6 +22,7 @@ import {
   CircleSlash,
   Bot,
   Zap,
+  LayoutList,
   Loader2,
   ArrowDown,
   ArrowUp,
@@ -79,6 +80,11 @@ interface StepMeta {
 
 const STEP_META: Record<AutomationStepType, StepMeta> = {
   send_message: { label: "Send Message", icon: MessageSquare, border: "border-l-wa-green" },
+  send_interactive_menu: {
+    label: "Interactive Menu",
+    icon: LayoutList,
+    border: "border-l-wa-green",
+  },
   ai_reply: { label: "AI Reply", icon: Bot, border: "border-l-emerald-500" },
   send_template: { label: "Send Template", icon: FileText, border: "border-l-wa-green" },
   add_tag: { label: "Add Tag", icon: Tag, border: "border-l-wa-green" },
@@ -94,6 +100,7 @@ const STEP_META: Record<AutomationStepType, StepMeta> = {
 
 const ADDABLE_STEPS: AutomationStepType[] = [
   "send_message",
+  "send_interactive_menu",
   "ai_reply",
   "send_template",
   "add_tag",
@@ -134,6 +141,15 @@ function blankConfig(type: AutomationStepType): Record<string, unknown> {
   switch (type) {
     case "send_message":
       return { text: "" }
+    case "send_interactive_menu":
+      return {
+        menu_type: "buttons",
+        body: "",
+        header: "",
+        footer: "",
+        list_button_text: "View options",
+        options: [{ id: "opt_1", title: "Option 1" }],
+      }
     case "ai_reply":
       return { system_prompt_override: "" }
     case "send_template":
@@ -727,6 +743,13 @@ function StepEditor({
           />
         </FieldBlock>
       )
+    case "send_interactive_menu":
+      return (
+        <InteractiveMenuEditor
+          config={cfg}
+          onChange={(patch) => set(patch)}
+        />
+      )
     case "ai_reply":
       return (
         <>
@@ -966,10 +989,166 @@ function FieldBlock({
   )
 }
 
+type MenuOption = { id: string; title: string; description?: string }
+
+function InteractiveMenuEditor({
+  config,
+  onChange,
+}: {
+  config: Record<string, unknown>
+  onChange: (patch: Record<string, unknown>) => void
+}) {
+  const menuType = (config.menu_type as string) === "list" ? "list" : "buttons"
+  const options = (Array.isArray(config.options) ? config.options : []) as MenuOption[]
+  const maxOptions = menuType === "list" ? 10 : 3
+
+  function setOptions(next: MenuOption[]) {
+    onChange({ options: next })
+  }
+
+  function updateOption(index: number, patch: Partial<MenuOption>) {
+    const next = options.map((o, i) => (i === index ? { ...o, ...patch } : o))
+    setOptions(next)
+  }
+
+  function addOption() {
+    if (options.length >= maxOptions) return
+    const n = options.length + 1
+    setOptions([...options, { id: `opt_${n}`, title: `Option ${n}` }])
+  }
+
+  function removeOption(index: number) {
+    setOptions(options.filter((_, i) => i !== index))
+  }
+
+  return (
+    <>
+      <p className="mb-2 text-xs text-wa-muted">
+        Buttons (max 3) or list (max 10). Use each option&apos;s <strong>id</strong> as a
+        keyword in separate Keyword Match automations to branch the flow.
+      </p>
+      <FieldBlock label="Menu type">
+        <select
+          value={menuType}
+          onChange={(e) =>
+            onChange({
+              menu_type: e.target.value,
+              options: options.slice(0, e.target.value === "list" ? 10 : 3),
+            })
+          }
+          className="w-full rounded-md border border-wa-border bg-wa-surface px-2 py-1.5 text-sm text-wa-text"
+        >
+          <option value="buttons">Buttons (1–3)</option>
+          <option value="list">List (1–10)</option>
+        </select>
+      </FieldBlock>
+      <FieldBlock label="Body message">
+        <Textarea
+          value={(config.body as string) ?? ""}
+          onChange={(e) => onChange({ body: e.target.value })}
+          placeholder="Choose an option below:"
+          className="min-h-20 bg-wa-surface text-wa-text"
+        />
+      </FieldBlock>
+      <FieldBlock label="Header (optional)">
+        <Input
+          value={(config.header as string) ?? ""}
+          onChange={(e) => onChange({ header: e.target.value })}
+          className="bg-wa-surface text-wa-text"
+        />
+      </FieldBlock>
+      <FieldBlock label="Footer (optional)">
+        <Input
+          value={(config.footer as string) ?? ""}
+          onChange={(e) => onChange({ footer: e.target.value })}
+          className="bg-wa-surface text-wa-text"
+        />
+      </FieldBlock>
+      {menuType === "list" && (
+        <FieldBlock label="List open button text">
+          <Input
+            value={(config.list_button_text as string) ?? "View options"}
+            onChange={(e) => onChange({ list_button_text: e.target.value })}
+            maxLength={20}
+            className="bg-wa-surface text-wa-text"
+          />
+        </FieldBlock>
+      )}
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-xs font-medium text-wa-muted">Options</span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={options.length >= maxOptions}
+          onClick={addOption}
+          className="h-7 border-wa-border text-xs"
+        >
+          <Plus className="mr-1 h-3 w-3" />
+          Add
+        </Button>
+      </div>
+      <div className="space-y-2">
+        {options.map((opt, i) => (
+          <div
+            key={i}
+            className="rounded-md border border-wa-border bg-wa-surface/50 p-2"
+          >
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <span className="text-xs text-wa-muted">Option {i + 1}</span>
+              {options.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeOption(i)}
+                  className="text-wa-muted hover:text-red-400"
+                  aria-label="Remove option"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Input
+                value={opt.id}
+                onChange={(e) => updateOption(i, { id: e.target.value })}
+                placeholder="id (for keyword match)"
+                className="bg-wa-surface font-mono text-xs text-wa-text"
+              />
+              <Input
+                value={opt.title}
+                onChange={(e) => updateOption(i, { title: e.target.value })}
+                placeholder="Visible label"
+                maxLength={menuType === "list" ? 24 : 20}
+                className="bg-wa-surface text-wa-text"
+              />
+            </div>
+            {menuType === "list" && (
+              <Input
+                value={opt.description ?? ""}
+                onChange={(e) => updateOption(i, { description: e.target.value })}
+                placeholder="Description (optional)"
+                maxLength={72}
+                className="mt-2 bg-wa-surface text-xs text-wa-text"
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
+
 function previewFor(step: BuilderStep): string {
   switch (step.step_type) {
     case "send_message":
       return (step.step_config.text as string) || "no text yet"
+    case "send_interactive_menu": {
+      const opts = (step.step_config.options as MenuOption[] | undefined) ?? []
+      const kind = step.step_config.menu_type === "list" ? "List" : "Buttons"
+      return opts.length
+        ? `${kind}: ${opts.map((o) => o.title || o.id).join(", ")}`
+        : "no options yet"
+    }
     case "ai_reply":
       return (step.step_config.system_prompt_override as string) || "uses Settings → AI"
     case "send_template":
