@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { ArrowLeft, Send, Loader2, Users, Save } from 'lucide-react';
+import { useWhatsAppSimulation } from '@/hooks/use-whatsapp-simulation';
 
 interface AudienceConfig {
   type: string;
@@ -49,6 +50,11 @@ export function Step4ScheduleSend({
   const [showConfirm, setShowConfirm] = useState(false);
   const [estimatedReach, setEstimatedReach] = useState<number>(0);
   const [loadingReach, setLoadingReach] = useState(true);
+  const { enabled: simulationEnabled, realCap } = useWhatsAppSimulation();
+  const hybridHint =
+    !simulationEnabled && realCap !== null
+      ? `First ${realCap} real`
+      : null;
 
   useEffect(() => {
     async function calculateReach() {
@@ -100,7 +106,23 @@ export function Step4ScheduleSend({
             : 'Custom';
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      {simulationEnabled ? (
+        <span
+          title="Simulation on — no real WhatsApp sends"
+          className="pointer-events-none absolute -top-1 right-0 rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-wa-muted/50"
+        >
+          Sim
+        </span>
+      ) : hybridHint ? (
+        <span
+          title={`${hybridHint}, rest simulated`}
+          className="pointer-events-none absolute -top-1 right-0 rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-wa-muted/50"
+        >
+          {hybridHint}
+        </span>
+      ) : null}
+
       <div>
         <h2 className="text-lg font-semibold text-wa-text">Review & Send</h2>
         <p className="mt-1 text-sm text-wa-muted">
@@ -214,7 +236,17 @@ export function Step4ScheduleSend({
                 <span className="font-medium text-wa-text">{estimatedReach.toLocaleString()}</span>{' '}
                 contacts using the{' '}
                 <span className="font-medium text-wa-text">{template.name}</span> template.
-                This action cannot be undone.
+                {simulationEnabled ? (
+                  <> Simulation only.</>
+                ) : realCap !== null ? (
+                  <>
+                    {' '}
+                    First {realCap.toLocaleString()} via WhatsApp API; rest
+                    simulated.
+                  </>
+                ) : (
+                  <> This action cannot be undone.</>
+                )}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>

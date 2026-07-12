@@ -19,6 +19,15 @@ const steps = [
   { label: 'Send', key: 'send' },
 ] as const;
 
+function defaultBroadcastName(templateName: string): string {
+  const date = new Date().toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  return `${templateName} · ${date}`;
+}
+
 export default function NewBroadcastPage() {
   const router = useRouter();
   const { createAndSendBroadcast, isProcessing, progress } = useBroadcastSending();
@@ -46,9 +55,12 @@ export default function NewBroadcastPage() {
   async function handleSend() {
     if (!template) return;
 
+    const broadcastName =
+      name.trim() || defaultBroadcastName(template.name);
+
     try {
       const broadcastId = await createAndSendBroadcast({
-        name,
+        name: broadcastName,
         template,
         audience: {
           type: audience.type,
@@ -81,10 +93,14 @@ export default function NewBroadcastPage() {
    * A full resume-draft UX is a future polish.
    */
   async function handleSaveDraft() {
-    if (!template || !name.trim()) {
-      toast.error('Give the broadcast a name before saving a draft.');
+    if (!template) {
+      toast.error('Choose a template before saving a draft.');
       return;
     }
+    const broadcastName =
+      name.trim() || defaultBroadcastName(template.name);
+    if (!name.trim()) setName(broadcastName);
+
     const supabase = createClient();
     const {
       data: { session },
@@ -97,7 +113,7 @@ export default function NewBroadcastPage() {
 
     const { error } = await supabase.from('broadcasts').insert({
       user_id: user.id,
-      name: name.trim(),
+      name: broadcastName,
       template_name: template.name,
       template_language: template.language ?? 'en_US',
       template_variables: variables,
@@ -205,13 +221,18 @@ export default function NewBroadcastPage() {
               onUpdate={setVariables}
               headerMediaUrl={headerMediaUrl}
               onHeaderMediaUrlChange={setHeaderMediaUrl}
-              onNext={() => setCurrentStep(3)}
+              onNext={() => {
+                if (!name.trim() && template) {
+                  setName(defaultBroadcastName(template.name));
+                }
+                setCurrentStep(3);
+              }}
               onBack={() => setCurrentStep(1)}
             />
           )}
           {currentStep === 3 && template && (
             <Step4ScheduleSend
-              name={name}
+              name={name || defaultBroadcastName(template.name)}
               onNameChange={setName}
               template={template}
               audience={audience}

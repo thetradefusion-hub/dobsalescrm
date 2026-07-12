@@ -9,6 +9,11 @@
  * instead of a runtime rejection from Meta.
  */
 
+import {
+  fakeWhatsAppMessageId,
+  simulateSendLatency,
+} from '@/lib/whatsapp/simulation'
+
 const META_API_VERSION = 'v21.0'
 const META_API_BASE = `https://graph.facebook.com/${META_API_VERSION}`
 
@@ -113,6 +118,8 @@ export interface SendTemplateMessageArgs {
   templateName: string
   language?: string
   params?: string[]
+  /** When true, skip Meta and return a fake message id (Settings simulation). */
+  simulate?: boolean
   /**
    * Required when the template HEADER format is IMAGE / VIDEO / DOCUMENT.
    * Meta rejects the send with #132012 if this is missing or the wrong type.
@@ -139,7 +146,15 @@ export async function sendTemplateMessage(
     language = 'en_US',
     params,
     headerMedia,
+    simulate,
   } = args
+
+  // Demo / local: never call Meta — return a fake wamid after a short delay.
+  if (simulate) {
+    await simulateSendLatency()
+    return { messageId: fakeWhatsAppMessageId() }
+  }
+
   const url = `${META_API_BASE}/${phoneNumberId}/messages`
 
   const template: Record<string, unknown> = {

@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
   MessageSquare,
-  GitBranch,
+  Megaphone,
   Users,
   Menu
 } from 'lucide-react'
@@ -24,7 +24,7 @@ export function MobileBottomNav({ onOpenSidebar, className }: MobileBottomNavPro
   const navItems = [
     { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
     { href: '/inbox', label: 'Inbox', icon: MessageSquare, badge: totalUnread },
-    { href: '/pipelines', label: 'Deals', icon: GitBranch },
+    { href: '/broadcasts', label: 'Bulk', icon: Megaphone },
     { href: '/contacts', label: 'Contacts', icon: Users },
   ]
 
