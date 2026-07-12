@@ -102,7 +102,7 @@ export default function LoginPage() {
             <LogIn className="h-7 w-7 text-wa-green" aria-hidden />
           </div>
           <CardTitle className="text-2xl font-bold text-wa-text">
-            Welcome ANAND RADIO HOUSE
+            Welcome
           </CardTitle>
           <CardDescription className="text-wa-muted">
             Sign in to {BRAND_NAME}
