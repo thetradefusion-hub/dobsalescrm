@@ -13,39 +13,23 @@ import {
   rateLimitResponse,
   RATE_LIMITS,
 } from '@/lib/rate-limit'
+import { supabaseAdmin } from '@/lib/automations/admin-client'
+import { persistBroadcastMessageToInbox } from '@/lib/broadcasts/persist-inbox'
 
 interface BroadcastResult {
   phone: string
   status: 'sent' | 'failed'
   whatsapp_message_id?: string
   error?: string
+  inbox_error?: string
 }
 
-/**
- * Two input shapes are accepted:
- *
- *   NEW (preferred — supports per-recipient variable substitution):
- *     {
- *       recipients: Array<{ phone: string; params: string[] }>,
- *       template_name, template_language
- *     }
- *
- *   LEGACY (all phones receive the same params — kept so existing
- *   callers don't break):
- *     {
- *       phone_numbers: string[],
- *       template_params: string[],
- *       template_name, template_language
- *     }
- *
- * Previous implementation only supported the legacy shape, and the
- * sending hook was forced to ship every batch with `templateParams[0]`
- * — meaning every recipient got contact-0's personalization. The new
- * shape is what actually fixes that.
- */
 interface NewRecipient {
   phone: string
+  contact_id?: string
   params?: string[]
+  /** Pre-rendered template body for inbox history. */
+  body_text?: string
 }
 
 export async function POST(request: Request) {
@@ -61,9 +45,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Per-user broadcast budget. Note: this limits how often a user
-    // can *start* a campaign, not how many messages go out inside
-    // one — the fan-out loop below runs without additional gating.
     const limit = checkRateLimit(`broadcast:${user.id}`, RATE_LIMITS.broadcast)
     if (!limit.success) {
       return rateLimitResponse(limit)
@@ -76,9 +57,10 @@ export async function POST(request: Request) {
       template_name,
       template_language,
       template_params,
+      header_media,
+      template_body,
     } = body
 
-    // Normalize to a list of {phone, params} regardless of shape.
     let recipients: NewRecipient[]
     if (Array.isArray(newRecipients) && newRecipients.length > 0) {
       recipients = newRecipients
@@ -96,14 +78,14 @@ export async function POST(request: Request) {
           error:
             'Provide either `recipients` (preferred) or `phone_numbers` — must be a non-empty array',
         },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
     if (!template_name) {
       return NextResponse.json(
         { error: 'template_name is required' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
@@ -119,11 +101,16 @@ export async function POST(request: Request) {
           error:
             'WhatsApp not configured. Please set up your WhatsApp integration first.',
         },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
     const accessToken = decrypt(config.access_token)
+    const admin = supabaseAdmin()
+    const mediaUrl =
+      header_media?.type && header_media?.link
+        ? String(header_media.link)
+        : null
 
     const results: BroadcastResult[] = []
     let sentCount = 0
@@ -142,8 +129,6 @@ export async function POST(request: Request) {
         continue
       }
 
-      // Retry with phone variants on "not in allowed list" so numbers
-      // that differ only in a trunk-prefix 0 still reach recipients.
       const variants = phoneVariants(sanitized)
       let sentMessageId: string | null = null
       let lastError: string | null = null
@@ -157,6 +142,14 @@ export async function POST(request: Request) {
             templateName: template_name,
             language: template_language || 'en_US',
             params: recipient.params ?? [],
+            headerMedia:
+              header_media?.type && header_media?.link
+                ? {
+                    type: header_media.type,
+                    link: header_media.link,
+                    filename: header_media.filename,
+                  }
+                : undefined,
           })
           sentMessageId = result.messageId
           lastError = null
@@ -169,21 +162,66 @@ export async function POST(request: Request) {
             break
           }
           lastError = errorMessage
-          // retry with next variant
         }
       }
 
       if (sentMessageId) {
-        results.push({
+        const row: BroadcastResult = {
           phone: recipient.phone,
           status: 'sent',
           whatsapp_message_id: sentMessageId,
-        })
+        }
+
+        // Resolve contact_id if not provided (phone lookup).
+        let contactId = recipient.contact_id ?? null
+        if (!contactId) {
+          const { data: contacts } = await admin
+            .from('contacts')
+            .select('id, phone')
+            .eq('user_id', user.id)
+          const match = (contacts ?? []).find((c) => {
+            const p = sanitizePhoneForMeta(c.phone || '')
+            return (
+              p === sanitized ||
+              phoneVariants(sanitized).includes(p) ||
+              c.phone === recipient.phone
+            )
+          })
+          contactId = match?.id ?? null
+        }
+
+        if (contactId) {
+          const bodyText =
+            recipient.body_text ??
+            (typeof template_body === 'string' ? template_body : '') ??
+            ''
+          const persisted = await persistBroadcastMessageToInbox({
+            admin,
+            userId: user.id,
+            contactId,
+            templateName: template_name,
+            bodyText,
+            mediaUrl,
+            whatsappMessageId: sentMessageId,
+          })
+          if ('error' in persisted) {
+            console.error(
+              '[broadcast] inbox persist failed:',
+              persisted.error,
+              recipient.phone,
+            )
+            row.inbox_error = persisted.error
+          }
+        } else {
+          row.inbox_error = 'contact not found for inbox persist'
+        }
+
+        results.push(row)
         sentCount++
       } else {
         console.error(
           `Failed to send broadcast to ${recipient.phone}:`,
-          lastError
+          lastError,
         )
         results.push({
           phone: recipient.phone,
@@ -205,7 +243,7 @@ export async function POST(request: Request) {
     console.error('Error in WhatsApp broadcast POST:', error)
     return NextResponse.json(
       { error: 'Failed to process broadcast' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }

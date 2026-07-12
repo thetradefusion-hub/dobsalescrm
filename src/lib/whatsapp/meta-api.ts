@@ -113,6 +113,15 @@ export interface SendTemplateMessageArgs {
   templateName: string
   language?: string
   params?: string[]
+  /**
+   * Required when the template HEADER format is IMAGE / VIDEO / DOCUMENT.
+   * Meta rejects the send with #132012 if this is missing or the wrong type.
+   */
+  headerMedia?: {
+    type: 'image' | 'video' | 'document'
+    link: string
+    filename?: string
+  }
 }
 
 /**
@@ -129,6 +138,7 @@ export async function sendTemplateMessage(
     templateName,
     language = 'en_US',
     params,
+    headerMedia,
   } = args
   const url = `${META_API_BASE}/${phoneNumberId}/messages`
 
@@ -137,13 +147,36 @@ export async function sendTemplateMessage(
     language: { code: language },
   }
 
+  const components: Record<string, unknown>[] = []
+
+  if (headerMedia?.link?.trim()) {
+    const mediaType = headerMedia.type
+    const mediaPayload: Record<string, string> = {
+      link: headerMedia.link.trim(),
+    }
+    if (mediaType === 'document' && headerMedia.filename) {
+      mediaPayload.filename = headerMedia.filename
+    }
+    components.push({
+      type: 'header',
+      parameters: [
+        {
+          type: mediaType,
+          [mediaType]: mediaPayload,
+        },
+      ],
+    })
+  }
+
   if (params && params.length > 0) {
-    template.components = [
-      {
-        type: 'body',
-        parameters: params.map((p) => ({ type: 'text', text: String(p) })),
-      },
-    ]
+    components.push({
+      type: 'body',
+      parameters: params.map((p) => ({ type: 'text', text: String(p) })),
+    })
+  }
+
+  if (components.length > 0) {
+    template.components = components
   }
 
   const response = await fetch(url, {

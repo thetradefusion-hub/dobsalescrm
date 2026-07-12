@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ArrowLeft, ArrowRight, Eye, Loader2 } from 'lucide-react';
+import { TemplateHeaderMediaInput } from '@/components/broadcasts/template-header-media-input';
 
 type VariableType = 'static' | 'field' | 'custom_field';
 
@@ -25,9 +26,13 @@ interface Step3Props {
   template: MessageTemplate;
   variables: Record<string, VariableMapping>;
   onUpdate: (variables: Record<string, VariableMapping>) => void;
+  headerMediaUrl: string;
+  onHeaderMediaUrlChange: (url: string) => void;
   onNext: () => void;
   onBack: () => void;
 }
+
+const MEDIA_HEADER_TYPES = new Set(['image', 'video', 'document']);
 
 const contactFields = [
   { value: 'name', label: 'Contact Name' },
@@ -51,6 +56,8 @@ export function Step3Personalize({
   template,
   variables,
   onUpdate,
+  headerMediaUrl,
+  onHeaderMediaUrlChange,
   onNext,
   onBack,
 }: Step3Props) {
@@ -110,6 +117,13 @@ export function Step3Personalize({
     if (!matches) return [];
     return [...new Set(matches)].sort();
   }, [template.body_text]);
+
+  const needsHeaderMedia =
+    !!template.header_type && MEDIA_HEADER_TYPES.has(template.header_type);
+
+  const headerMediaValid =
+    !needsHeaderMedia ||
+    /^https:\/\/.+/i.test(headerMediaUrl.trim());
 
   /**
    * A placeholder is "unmapped" if the user hasn't picked either a
@@ -193,10 +207,20 @@ export function Step3Personalize({
         </p>
       </div>
 
+      {needsHeaderMedia && (
+        <TemplateHeaderMediaInput
+          mediaType={template.header_type as 'image' | 'video' | 'document'}
+          value={headerMediaUrl}
+          onChange={onHeaderMediaUrlChange}
+        />
+      )}
+
       {placeholders.length === 0 ? (
         <div className="rounded-xl border border-wa-border bg-wa-panel/50 p-6 text-center">
           <p className="text-sm text-wa-muted">
-            This template has no variables to personalize.
+            {needsHeaderMedia
+              ? 'No body variables — only the header media above is required.'
+              : 'This template has no variables to personalize.'}
           </p>
         </div>
       ) : (
@@ -339,6 +363,13 @@ export function Step3Personalize({
         </div>
       )}
 
+      {needsHeaderMedia && !headerMediaValid && (
+        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+          Add a public HTTPS {template.header_type} URL for the template header
+          before continuing.
+        </div>
+      )}
+
       <div className="flex items-center justify-between border-t border-wa-border pt-4">
         <Button
           variant="outline"
@@ -350,7 +381,7 @@ export function Step3Personalize({
         </Button>
         <Button
           onClick={onNext}
-          disabled={unmappedKeys.length > 0}
+          disabled={unmappedKeys.length > 0 || !headerMediaValid}
           className="bg-wa-bubble-out text-wa-text hover:bg-wa-teal hover:text-white disabled:opacity-50"
         >
           Next

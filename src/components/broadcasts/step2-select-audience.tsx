@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { CustomField, Tag } from '@/types';
+import { Contact, CustomField, Tag } from '@/types';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Users,
+  UserCheck,
   Tags,
   Filter,
   Upload,
@@ -13,9 +15,12 @@ import {
   ArrowRight,
   ArrowLeft,
   X,
+  Search,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
 
-type AudienceType = 'all' | 'tags' | 'custom_field' | 'csv';
+type AudienceType = 'all' | 'contacts' | 'tags' | 'custom_field' | 'csv';
 type CustomFieldOperator = 'is' | 'is_not' | 'contains';
 
 interface CustomFieldFilter {
@@ -26,6 +31,7 @@ interface CustomFieldFilter {
 
 interface AudienceConfig {
   type: AudienceType;
+  contactIds?: string[];
   tagIds?: string[];
   customField?: CustomFieldFilter;
   csvContacts?: { phone: string; name?: string }[];
@@ -50,6 +56,12 @@ const audienceOptions: {
     label: 'All Contacts',
     description: 'Send to every contact in your database',
     icon: Users,
+  },
+  {
+    type: 'contacts',
+    label: 'Select Contacts',
+    description: 'Pick specific contacts from your list',
+    icon: UserCheck,
   },
   {
     type: 'tags',
@@ -85,8 +97,11 @@ export function Step2SelectAudience({
 }: Step2Props) {
   const [tags, setTags] = useState<Tag[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contactSearch, setContactSearch] = useState('');
   const [loadingTags, setLoadingTags] = useState(false);
   const [loadingFields, setLoadingFields] = useState(false);
+  const [loadingContacts, setLoadingContacts] = useState(false);
   const [estimatedCount, setEstimatedCount] = useState<number | null>(null);
   const [loadingCount, setLoadingCount] = useState(false);
 
@@ -105,6 +120,25 @@ export function Step2SelectAudience({
     }
     fetchTags();
   }, []);
+
+  // Load contacts when "Select Contacts" is active.
+  useEffect(() => {
+    if (audience.type !== 'contacts') return;
+    async function fetchContacts() {
+      setLoadingContacts(true);
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from('contacts')
+          .select('id, name, phone, email, company')
+          .order('name', { ascending: true });
+        setContacts((data as Contact[]) ?? []);
+      } finally {
+        setLoadingContacts(false);
+      }
+    }
+    fetchContacts();
+  }, [audience.type]);
 
   // Lazy-load custom fields only when that audience type is active.
   useEffect(() => {
@@ -125,6 +159,17 @@ export function Step2SelectAudience({
     fetchFields();
   }, [audience.type]);
 
+  const filteredContacts = useMemo(() => {
+    const q = contactSearch.trim().toLowerCase();
+    if (!q) return contacts;
+    return contacts.filter((c) => {
+      const hay = `${c.name ?? ''} ${c.phone} ${c.email ?? ''} ${c.company ?? ''}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [contacts, contactSearch]);
+
+  const selectedContactIds = audience.contactIds ?? [];
+
   const fetchEstimatedCount = useCallback(async () => {
     setLoadingCount(true);
     try {
@@ -135,6 +180,12 @@ export function Step2SelectAudience({
 
       if (audience.type === 'all') {
         // Handled below — full-table count adjusted by excludes.
+      } else if (audience.type === 'contacts') {
+        if (!audience.contactIds || audience.contactIds.length === 0) {
+          setEstimatedCount(null);
+          return;
+        }
+        baseIds = new Set(audience.contactIds);
       } else if (
         audience.type === 'tags' &&
         audience.tagIds &&
@@ -201,6 +252,7 @@ export function Step2SelectAudience({
     }
   }, [
     audience.type,
+    audience.contactIds,
     audience.tagIds,
     audience.customField,
     audience.csvContacts,
@@ -227,6 +279,24 @@ export function Step2SelectAudience({
     onUpdate({ ...audience, excludeTagIds: updated });
   }
 
+  function toggleContact(contactId: string) {
+    const current = audience.contactIds ?? [];
+    const updated = current.includes(contactId)
+      ? current.filter((id) => id !== contactId)
+      : [...current, contactId];
+    onUpdate({ ...audience, contactIds: updated });
+  }
+
+  function selectAllFiltered() {
+    const ids = new Set(audience.contactIds ?? []);
+    for (const c of filteredContacts) ids.add(c.id);
+    onUpdate({ ...audience, contactIds: [...ids] });
+  }
+
+  function clearContactSelection() {
+    onUpdate({ ...audience, contactIds: [] });
+  }
+
   function updateCustomField(patch: Partial<CustomFieldFilter>) {
     const prev = audience.customField ?? {
       fieldId: '',
@@ -238,6 +308,9 @@ export function Step2SelectAudience({
 
   const isValid =
     audience.type === 'all' ||
+    (audience.type === 'contacts' &&
+      audience.contactIds &&
+      audience.contactIds.length > 0) ||
     (audience.type === 'tags' && audience.tagIds && audience.tagIds.length > 0) ||
     (audience.type === 'custom_field' &&
       !!audience.customField?.fieldId &&
@@ -268,6 +341,8 @@ export function Step2SelectAudience({
                   type: option.type,
                   // Wipe shape fields from other types to avoid stale
                   // config leaking across selections.
+                  contactIds:
+                    option.type === 'contacts' ? audience.contactIds : undefined,
                   tagIds: option.type === 'tags' ? audience.tagIds : undefined,
                   customField:
                     option.type === 'custom_field'
@@ -302,6 +377,121 @@ export function Step2SelectAudience({
           );
         })}
       </div>
+
+      {audience.type === 'contacts' && (
+        <div className="space-y-3 rounded-xl border border-wa-border bg-wa-panel/50 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-medium text-wa-text">
+              Select Contacts
+              {selectedContactIds.length > 0 && (
+                <span className="ml-2 text-xs font-normal text-wa-green">
+                  {selectedContactIds.length} selected
+                </span>
+              )}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={selectAllFiltered}
+                disabled={loadingContacts || filteredContacts.length === 0}
+                className="h-8 border-wa-border text-xs text-wa-text/90"
+              >
+                <CheckSquare className="h-3.5 w-3.5" />
+                Select all
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={clearContactSelection}
+                disabled={selectedContactIds.length === 0}
+                className="h-8 border-wa-border text-xs text-wa-text/90"
+              >
+                <Square className="h-3.5 w-3.5" />
+                Clear
+              </Button>
+            </div>
+          </div>
+
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-wa-muted" />
+            <Input
+              value={contactSearch}
+              onChange={(e) => setContactSearch(e.target.value)}
+              placeholder="Search by name, phone, email…"
+              className="h-9 border-wa-border bg-wa-surface pl-9 text-sm text-wa-text placeholder:text-wa-muted/80"
+            />
+          </div>
+
+          {loadingContacts ? (
+            <div className="flex items-center gap-2 py-6">
+              <Loader2 className="h-5 w-5 animate-spin text-wa-green" />
+              <span className="text-xs text-wa-muted">Loading contacts…</span>
+            </div>
+          ) : contacts.length === 0 ? (
+            <p className="py-4 text-xs text-wa-muted">
+              No contacts found. Add contacts first from the Contacts page.
+            </p>
+          ) : filteredContacts.length === 0 ? (
+            <p className="py-4 text-xs text-wa-muted">
+              No contacts match “{contactSearch}”.
+            </p>
+          ) : (
+            <div className="max-h-72 overflow-y-auto rounded-lg border border-wa-border bg-wa-surface">
+              <ul className="divide-y divide-wa-border">
+                {filteredContacts.map((contact) => {
+                  const checked = selectedContactIds.includes(contact.id);
+                  return (
+                    <li key={contact.id}>
+                      <button
+                        type="button"
+                        onClick={() => toggleContact(contact.id)}
+                        className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+                          checked
+                            ? 'bg-wa-green/10'
+                            : 'hover:bg-wa-panel/80'
+                        }`}
+                      >
+                        <span
+                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                            checked
+                              ? 'border-wa-green bg-wa-green text-white'
+                              : 'border-wa-border bg-wa-surface'
+                          }`}
+                          aria-hidden
+                        >
+                          {checked ? (
+                            <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none">
+                              <path
+                                d="M2.5 6.5 5 9l4.5-5.5"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          ) : null}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium text-wa-text">
+                            {contact.name?.trim() || 'Unnamed'}
+                          </span>
+                          <span className="block truncate text-xs text-wa-muted">
+                            {contact.phone}
+                            {contact.company ? ` · ${contact.company}` : ''}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       {audience.type === 'tags' && (
         <div className="rounded-xl border border-wa-border bg-wa-panel/50 p-4">

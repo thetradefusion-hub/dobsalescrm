@@ -13,7 +13,9 @@ export interface CustomFieldFilter {
 }
 
 export interface AudienceConfig {
-  type: 'all' | 'tags' | 'custom_field' | 'csv';
+  type: 'all' | 'contacts' | 'tags' | 'custom_field' | 'csv';
+  /** Explicit contact IDs when type === 'contacts'. */
+  contactIds?: string[];
   tagIds?: string[];
   customField?: CustomFieldFilter;
   csvContacts?: { phone: string; name?: string }[];
@@ -38,6 +40,8 @@ interface BroadcastPayload {
   template: MessageTemplate;
   audience: AudienceConfig;
   variables: Record<string, VariableMapping>;
+  /** Public HTTPS URL for IMAGE/VIDEO/DOCUMENT template headers. */
+  headerMediaUrl?: string;
 }
 
 interface UseBroadcastSendingReturn {
@@ -59,6 +63,14 @@ const INSERT_BATCH_SIZE = 200;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function renderTemplateBody(body: string, params: string[]): string {
+  return body.replace(/\{\{(\d+)\}\}/g, (_, raw) => {
+    const idx = Number(raw) - 1;
+    const value = params[idx];
+    return value && value.trim().length > 0 ? value : `{{${raw}}}`;
+  });
 }
 
 interface BroadcastApiResult {
@@ -152,6 +164,24 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
       const { data, error } = await supabase.from('contacts').select('*');
       if (error) throw new Error(`Failed to fetch contacts: ${error.message}`);
       contacts = data ?? [];
+    } else if (
+      audience.type === 'contacts' &&
+      audience.contactIds &&
+      audience.contactIds.length > 0
+    ) {
+      const PAGE = 500;
+      const ids = [...new Set(audience.contactIds)];
+      const rows: Contact[] = [];
+      for (let i = 0; i < ids.length; i += PAGE) {
+        const slice = ids.slice(i, i + PAGE);
+        const { data, error } = await supabase
+          .from('contacts')
+          .select('*')
+          .in('id', slice);
+        if (error) throw new Error(`Failed to fetch contacts: ${error.message}`);
+        rows.push(...(data ?? []));
+      }
+      contacts = rows;
     } else if (
       audience.type === 'tags' &&
       audience.tagIds &&
@@ -327,6 +357,18 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
         throw new Error('You are not signed in.');
       }
 
+      const headerType = payload.template.header_type;
+      if (
+        (headerType === 'image' ||
+          headerType === 'video' ||
+          headerType === 'document') &&
+        !payload.headerMediaUrl?.trim()
+      ) {
+        throw new Error(
+          `Template "${payload.template.name}" requires a public HTTPS ${headerType} URL for the header.`,
+        );
+      }
+
       // ── Step 1: Resolve audience contacts ─────────────────────────
       setProgress(5);
       const contacts = await resolveAudience(payload.audience);
@@ -347,6 +389,7 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
           template_variables: payload.variables,
           audience_filter: {
             type: payload.audience.type,
+            contactIds: payload.audience.contactIds,
             tagIds: payload.audience.tagIds,
             customField: payload.audience.customField,
             excludeTagIds: payload.audience.excludeTagIds,
@@ -429,16 +472,24 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
 
         const apiRecipients = batch
           .filter((r) => r.contact?.phone)
-          .map((r) => ({
-            phone: r.contact!.phone as string,
-            params: r.contact
+          .map((r) => {
+            const params = r.contact
               ? resolveVariables(
                   payload.variables,
                   r.contact,
                   customValueIndex.get(r.contact.id),
                 )
-              : [],
-          }));
+              : [];
+            return {
+              phone: r.contact!.phone as string,
+              contact_id: r.contact!.id as string,
+              params,
+              body_text: renderTemplateBody(
+                payload.template.body_text,
+                params,
+              ),
+            };
+          });
 
         if (apiRecipients.length === 0) continue;
 
@@ -450,6 +501,17 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
               recipients: apiRecipients,
               template_name: payload.template.name,
               template_language: payload.template.language ?? 'en_US',
+              template_body: payload.template.body_text,
+              header_media:
+                payload.headerMediaUrl &&
+                (payload.template.header_type === 'image' ||
+                  payload.template.header_type === 'video' ||
+                  payload.template.header_type === 'document')
+                  ? {
+                      type: payload.template.header_type,
+                      link: payload.headerMediaUrl,
+                    }
+                  : undefined,
             }),
           });
 
@@ -490,6 +552,7 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
                   error_message: null,
                 })
                 .eq('id', recipient.id);
+              // Inbox row is written server-side in /api/whatsapp/broadcast.
             } else {
               failedCount++;
               await supabase

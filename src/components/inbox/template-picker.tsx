@@ -21,12 +21,19 @@ import {
   LayoutTemplate,
   Loader2,
 } from "lucide-react";
+import { TemplateHeaderMediaInput } from "@/components/broadcasts/template-header-media-input";
 
 interface TemplatePickerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSelect: (template: MessageTemplate, params: string[]) => void;
+  onSelect: (
+    template: MessageTemplate,
+    params: string[],
+    options?: { headerMediaUrl?: string },
+  ) => void;
 }
+
+const MEDIA_HEADER_TYPES = new Set(["image", "video", "document"]);
 
 // Meta numbers template placeholders from 1 ({{1}}, {{2}}, …) and the
 // indices passed to the Graph API must be contiguous starting at 1.
@@ -57,6 +64,7 @@ export function TemplatePicker({
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<MessageTemplate | null>(null);
   const [params, setParams] = useState<string[]>([]);
+  const [headerMediaUrl, setHeaderMediaUrl] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -106,31 +114,43 @@ export function TemplatePicker({
     if (!next) {
       setSelected(null);
       setParams([]);
+      setHeaderMediaUrl("");
     }
     onOpenChange(next);
   }
 
   function pickTemplate(template: MessageTemplate) {
     const vars = extractVariables(template.body_text);
-    if (vars.length === 0) {
+    const needsMedia =
+      !!template.header_type && MEDIA_HEADER_TYPES.has(template.header_type);
+    // Always open the detail step when media header or body vars need input.
+    if (vars.length === 0 && !needsMedia) {
       onSelect(template, []);
       handleOpenChange(false);
       return;
     }
     setSelected(template);
     setParams(new Array(vars.length).fill(""));
+    setHeaderMediaUrl("");
   }
 
   function confirm() {
     if (!selected) return;
-    onSelect(selected, params);
+    onSelect(selected, params, {
+      headerMediaUrl: headerMediaUrl.trim() || undefined,
+    });
     handleOpenChange(false);
   }
 
   const variables = selected ? extractVariables(selected.body_text) : [];
+  const needsHeaderMedia =
+    !!selected?.header_type && MEDIA_HEADER_TYPES.has(selected.header_type);
+  const headerMediaValid =
+    !needsHeaderMedia || /^https:\/\/.+/i.test(headerMediaUrl.trim());
   const canConfirm =
     !!selected &&
-    variables.every((_, i) => (params[i] ?? "").trim().length > 0);
+    variables.every((_, i) => (params[i] ?? "").trim().length > 0) &&
+    headerMediaValid;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -142,7 +162,9 @@ export function TemplatePicker({
           </DialogTitle>
           <DialogDescription className="text-wa-muted">
             {selected
-              ? "Fill in the placeholders to render this template. Meta requires every variable to be set."
+              ? needsHeaderMedia
+                ? "Provide the header media URL and any body variables. Meta requires every field."
+                : "Fill in the placeholders to render this template. Meta requires every variable to be set."
               : "Pick an approved WhatsApp template to send to this contact."}
           </DialogDescription>
         </DialogHeader>
@@ -178,6 +200,11 @@ export function TemplatePicker({
                         <Badge className="border border-wa-teal/30 bg-wa-bubble-out/20 text-[10px] text-wa-green">
                           {t.category}
                         </Badge>
+                        {t.header_type && MEDIA_HEADER_TYPES.has(t.header_type) && (
+                          <Badge className="border border-wa-border bg-wa-surface text-[10px] text-wa-muted">
+                            {t.header_type} header
+                          </Badge>
+                        )}
                         {t.language && (
                           <span className="text-[10px] uppercase text-wa-muted/80">
                             {t.language}
@@ -207,6 +234,14 @@ export function TemplatePicker({
                 </p>
               )}
             </div>
+            {needsHeaderMedia && selected.header_type && (
+              <TemplateHeaderMediaInput
+                mediaType={selected.header_type as "image" | "video" | "document"}
+                value={headerMediaUrl}
+                onChange={setHeaderMediaUrl}
+                className="space-y-2 rounded-md border border-wa-border bg-wa-deep/50 p-3"
+              />
+            )}
             {variables.map((v, i) => (
               <div key={v} className="space-y-1">
                 <Label className="text-xs text-wa-text/90">{`Variable {{${v}}}`}</Label>
@@ -233,6 +268,7 @@ export function TemplatePicker({
                 onClick={() => {
                   setSelected(null);
                   setParams([]);
+                  setHeaderMediaUrl("");
                 }}
                 className="border-wa-border text-wa-text/90 hover:bg-wa-surface"
               >

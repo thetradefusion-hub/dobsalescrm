@@ -322,7 +322,11 @@ export function MessageThread({
   }, []);
 
   const handleSendTemplate = useCallback(
-    async (template: MessageTemplate, params: string[]) => {
+    async (
+      template: MessageTemplate,
+      params: string[],
+      options?: { headerMediaUrl?: string },
+    ) => {
       if (!conversation) return;
 
       const renderedBody = renderTemplateBody(template.body_text, params);
@@ -334,6 +338,7 @@ export function MessageThread({
         sender_type: "agent",
         content_type: "template",
         content_text: renderedBody,
+        media_url: options?.headerMediaUrl || undefined,
         template_name: template.name,
         status: "sending",
         created_at: new Date().toISOString(),
@@ -348,8 +353,20 @@ export function MessageThread({
             conversation_id: conversation.id,
             message_type: "template",
             template_name: template.name,
+            template_language: template.language ?? "en_US",
             template_params: params,
             content_text: renderedBody,
+            media_url: options?.headerMediaUrl || null,
+            header_media:
+              options?.headerMediaUrl &&
+              (template.header_type === "image" ||
+                template.header_type === "video" ||
+                template.header_type === "document")
+                ? {
+                    type: template.header_type,
+                    link: options.headerMediaUrl,
+                  }
+                : undefined,
           }),
         });
 

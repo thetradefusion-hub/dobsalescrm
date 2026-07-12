@@ -45,6 +45,8 @@ export async function POST(request: Request) {
       media_url,
       template_name,
       template_params,
+      template_language,
+      header_media,
     } = body
 
     if (!conversation_id || !message_type) {
@@ -151,7 +153,16 @@ export async function POST(request: Request) {
           accessToken,
           to: phone,
           templateName: template_name,
+          language: template_language || 'en_US',
           params: template_params || [],
+          headerMedia:
+            header_media?.type && header_media?.link
+              ? {
+                  type: header_media.type,
+                  link: header_media.link,
+                  filename: header_media.filename,
+                }
+              : undefined,
         })
         return result.messageId
       }

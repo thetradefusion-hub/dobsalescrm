@@ -187,8 +187,13 @@ function MessageContent({ message }: { message: Message }) {
         <div>
           <span className="mb-1 inline-flex items-center gap-1 rounded bg-wa-green/20 px-1.5 py-0.5 text-[10px] font-medium text-wa-green">
             <LayoutTemplate className="h-3 w-3" />
-            Template
+            {message.template_name || "Template"}
           </span>
+          {message.media_url && (
+            <div className="mt-1.5">
+              <MediaImage url={message.media_url} alt="Template header" />
+            </div>
+          )}
           {message.content_text && (
             <p className="mt-1 whitespace-pre-wrap break-words text-sm">
               {message.content_text}

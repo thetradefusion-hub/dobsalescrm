@@ -18,6 +18,7 @@ import { ArrowLeft, Send, Loader2, Users, Save } from 'lucide-react';
 
 interface AudienceConfig {
   type: string;
+  contactIds?: string[];
   tagIds?: string[];
   csvContacts?: { phone: string; name?: string }[];
 }
@@ -60,6 +61,12 @@ export function Step4ScheduleSend({
             .from('contacts')
             .select('*', { count: 'exact', head: true });
           setEstimatedReach(count ?? 0);
+        } else if (
+          audience.type === 'contacts' &&
+          audience.contactIds &&
+          audience.contactIds.length > 0
+        ) {
+          setEstimatedReach(audience.contactIds.length);
         } else if (audience.type === 'tags' && audience.tagIds && audience.tagIds.length > 0) {
           const { data: contactTags } = await supabase
             .from('contact_tags')
@@ -84,11 +91,13 @@ export function Step4ScheduleSend({
   const audienceLabel =
     audience.type === 'all'
       ? 'All Contacts'
-      : audience.type === 'tags'
-        ? `Tags (${audience.tagIds?.length ?? 0} selected)`
-        : audience.type === 'csv'
-          ? 'CSV Upload'
-          : 'Custom';
+      : audience.type === 'contacts'
+        ? `Selected Contacts (${audience.contactIds?.length ?? 0})`
+        : audience.type === 'tags'
+          ? `Tags (${audience.tagIds?.length ?? 0} selected)`
+          : audience.type === 'csv'
+            ? 'CSV Upload'
+            : 'Custom';
 
   return (
     <div className="space-y-6">
