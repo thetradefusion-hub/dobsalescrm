@@ -25,7 +25,7 @@ export async function persistBroadcastMessageToInbox(args: {
     whatsappMessageId,
   } = args
 
-  let conversationId: string | null = null
+  let conversationId: string
 
   const { data: existing, error: findErr } = await admin
     .from('conversations')
@@ -37,7 +37,7 @@ export async function persistBroadcastMessageToInbox(args: {
   if (findErr) return { error: findErr.message }
 
   if (existing?.id) {
-    conversationId = existing.id
+    conversationId = existing.id as string
   } else {
     const { data: created, error: createErr } = await admin
       .from('conversations')
@@ -48,7 +48,7 @@ export async function persistBroadcastMessageToInbox(args: {
       })
       .select('id')
       .single()
-    if (createErr || !created) {
+    if (createErr || !created?.id) {
       return { error: createErr?.message ?? 'failed to create conversation' }
     }
     conversationId = created.id as string
