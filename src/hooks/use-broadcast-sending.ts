@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Contact, MessageTemplate } from '@/types';
+import { BroadcastRecipient, Contact, MessageTemplate } from '@/types';
 
 export type CustomFieldOperator = 'is' | 'is_not' | 'contains';
 
@@ -91,8 +91,50 @@ function readRealCapCookie(): number | null {
 /** `broadcast_recipients` inserts are independent of the send rate. */
 const INSERT_BATCH_SIZE = 200;
 
+/** PostgREST default max rows per request — page past this. */
+const QUERY_PAGE_SIZE = 1000;
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Page through a Supabase table until all rows are loaded. */
+async function fetchAllRows<T>(
+  fetchPage: (
+    from: number,
+    to: number,
+  ) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+): Promise<T[]> {
+  const rows: T[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await fetchPage(from, from + QUERY_PAGE_SIZE - 1);
+    if (error) throw new Error(error.message);
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < QUERY_PAGE_SIZE) break;
+    from += QUERY_PAGE_SIZE;
+  }
+  return rows;
+}
+
+async function fetchContactsByIds(
+  supabase: ReturnType<typeof createClient>,
+  ids: string[],
+): Promise<Contact[]> {
+  const unique = [...new Set(ids)];
+  const rows: Contact[] = [];
+  const PAGE = 500;
+  for (let i = 0; i < unique.length; i += PAGE) {
+    const slice = unique.slice(i, i + PAGE);
+    const { data, error } = await supabase
+      .from('contacts')
+      .select('*')
+      .in('id', slice);
+    if (error) throw new Error(`Failed to fetch contacts: ${error.message}`);
+    rows.push(...(data ?? []));
+  }
+  return rows;
 }
 
 function renderTemplateBody(body: string, params: string[]): string {
@@ -191,9 +233,9 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
     let contacts: Contact[] = [];
 
     if (audience.type === 'all') {
-      const { data, error } = await supabase.from('contacts').select('*');
-      if (error) throw new Error(`Failed to fetch contacts: ${error.message}`);
-      contacts = data ?? [];
+      contacts = await fetchAllRows<Contact>((from, to) =>
+        supabase.from('contacts').select('*').range(from, to),
+      );
     } else if (
       audience.type === 'contacts' &&
       audience.contactIds &&
@@ -217,24 +259,20 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
       audience.tagIds &&
       audience.tagIds.length > 0
     ) {
-      const { data: contactTags, error: tagError } = await supabase
-        .from('contact_tags')
-        .select('contact_id')
-        .in('tag_id', audience.tagIds);
+      const contactTags = await fetchAllRows<{ contact_id: string }>(
+        (from, to) =>
+          supabase
+            .from('contact_tags')
+            .select('contact_id')
+            .in('tag_id', audience.tagIds!)
+            .range(from, to),
+      );
 
-      if (tagError)
-        throw new Error(`Failed to fetch contact tags: ${tagError.message}`);
-
-      if (contactTags && contactTags.length > 0) {
+      if (contactTags.length > 0) {
         const uniqueContactIds = [
           ...new Set(contactTags.map((ct) => ct.contact_id)),
         ];
-        const { data, error } = await supabase
-          .from('contacts')
-          .select('*')
-          .in('id', uniqueContactIds);
-        if (error) throw new Error(`Failed to fetch contacts: ${error.message}`);
-        contacts = data ?? [];
+        contacts = await fetchContactsByIds(supabase, uniqueContactIds);
       }
     } else if (audience.type === 'custom_field' && audience.customField) {
       contacts = await resolveCustomFieldAudience(supabase, audience.customField);
@@ -359,12 +397,7 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
     const contactIds = [...new Set((matches ?? []).map((m) => m.contact_id))];
     if (contactIds.length === 0) return [];
 
-    const { data, error } = await supabase
-      .from('contacts')
-      .select('*')
-      .in('id', contactIds);
-    if (error) throw new Error(`Failed to fetch contacts: ${error.message}`);
-    return data ?? [];
+    return fetchContactsByIds(supabase, contactIds);
   }
 
   async function createAndSendBroadcast(payload: BroadcastPayload): Promise<string> {
@@ -475,14 +508,13 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
 
       // ── Step 4: Fetch recipients (joined contact) + preload custom values
       setProgress(30);
-      const { data: recipients, error: recipientsFetchError } = await supabase
-        .from('broadcast_recipients')
-        .select('*, contact:contacts(*)')
-        .eq('broadcast_id', broadcast.id);
-
-      if (recipientsFetchError || !recipients) {
-        throw new Error('Failed to fetch broadcast recipients');
-      }
+      const recipients = await fetchAllRows<BroadcastRecipient>((from, to) =>
+        supabase
+          .from('broadcast_recipients')
+          .select('*, contact:contacts(*)')
+          .eq('broadcast_id', broadcast.id)
+          .range(from, to),
+      );
 
       // One bulk fetch of custom values for every contact in this
       // broadcast, avoiding N+1 during the send loop.
@@ -581,55 +613,61 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
             resultsByPhone.set(r.phone, r);
           }
 
-          for (const recipient of batch) {
-            const phone = recipient.contact?.phone;
-            const result = phone ? resultsByPhone.get(phone) : undefined;
+          const sentAt = new Date().toISOString();
+          await Promise.all(
+            batch.map(async (recipient) => {
+              const phone = recipient.contact?.phone;
+              const result = phone ? resultsByPhone.get(phone) : undefined;
 
-            if (!result) {
-              failedCount++;
-              await supabase
-                .from('broadcast_recipients')
-                .update({
-                  status: 'failed',
-                  error_message: 'No phone number on contact',
-                })
-                .eq('id', recipient.id);
-              continue;
-            }
+              if (!result) {
+                failedCount++;
+                await supabase
+                  .from('broadcast_recipients')
+                  .update({
+                    status: 'failed',
+                    error_message: 'No phone number on contact',
+                  })
+                  .eq('id', recipient.id);
+                return;
+              }
 
-            if (result.status === 'sent') {
-              await supabase
-                .from('broadcast_recipients')
-                .update({
-                  status: 'sent',
-                  sent_at: new Date().toISOString(),
-                  whatsapp_message_id: result.whatsapp_message_id ?? null,
-                  error_message: null,
-                })
-                .eq('id', recipient.id);
-              // Inbox row is written server-side in /api/whatsapp/broadcast.
-            } else {
-              failedCount++;
-              await supabase
-                .from('broadcast_recipients')
-                .update({
-                  status: 'failed',
-                  error_message: result.error ?? 'Unknown error',
-                })
-                .eq('id', recipient.id);
-            }
-          }
+              if (result.status === 'sent') {
+                await supabase
+                  .from('broadcast_recipients')
+                  .update({
+                    status: 'sent',
+                    sent_at: sentAt,
+                    whatsapp_message_id: result.whatsapp_message_id ?? null,
+                    error_message: null,
+                  })
+                  .eq('id', recipient.id);
+                // Inbox row is written server-side in /api/whatsapp/broadcast.
+              } else {
+                failedCount++;
+                await supabase
+                  .from('broadcast_recipients')
+                  .update({
+                    status: 'failed',
+                    error_message: result.error ?? 'Unknown error',
+                  })
+                  .eq('id', recipient.id);
+              }
+            }),
+          );
         } catch (err) {
-          for (const recipient of batch) {
-            failedCount++;
-            await supabase
-              .from('broadcast_recipients')
-              .update({
-                status: 'failed',
-                error_message: err instanceof Error ? err.message : 'Unknown error',
-              })
-              .eq('id', recipient.id);
-          }
+          const errMsg = err instanceof Error ? err.message : 'Unknown error';
+          failedCount += batch.length;
+          await Promise.all(
+            batch.map((recipient) =>
+              supabase
+                .from('broadcast_recipients')
+                .update({
+                  status: 'failed',
+                  error_message: errMsg,
+                })
+                .eq('id', recipient.id),
+            ),
+          );
         }
 
         const progressPct =

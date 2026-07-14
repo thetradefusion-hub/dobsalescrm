@@ -111,6 +111,30 @@ function FunnelChart({ steps }: { steps: FunnelStep[] }) {
   );
 }
 
+const QUERY_PAGE_SIZE = 1000;
+
+async function fetchAllBroadcastRecipients(
+  supabase: ReturnType<typeof createClient>,
+  broadcastId: string,
+): Promise<BroadcastRecipient[]> {
+  const rows: BroadcastRecipient[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('broadcast_recipients')
+      .select('*, contact:contacts(*)')
+      .eq('broadcast_id', broadcastId)
+      .order('created_at', { ascending: false })
+      .range(from, from + QUERY_PAGE_SIZE - 1);
+    if (error) throw error;
+    const page = (data ?? []) as BroadcastRecipient[];
+    rows.push(...page);
+    if (page.length < QUERY_PAGE_SIZE) break;
+    from += QUERY_PAGE_SIZE;
+  }
+  return rows;
+}
+
 const RECIPIENT_STATUSES: readonly RecipientStatus[] = [
   'pending',
   'sent',
@@ -170,14 +194,8 @@ export default function BroadcastDetailPage() {
         if (bcError) throw bcError;
         setBroadcast(bc);
 
-        const { data: recs, error: recsError } = await supabase
-          .from('broadcast_recipients')
-          .select('*, contact:contacts(*)')
-          .eq('broadcast_id', broadcastId)
-          .order('created_at', { ascending: false });
-
-        if (recsError) throw recsError;
-        setRecipients(recs ?? []);
+        const recs = await fetchAllBroadcastRecipients(supabase, broadcastId);
+        setRecipients(recs);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load broadcast');
       } finally {
