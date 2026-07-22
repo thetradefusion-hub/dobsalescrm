@@ -73,10 +73,10 @@ async function main() {
     const match = users?.users?.find(
       (u) => u.email?.toLowerCase() === emailArg.toLowerCase(),
     )
-    userId = match?.id
-    if (!userId) {
+    if (!match?.id) {
       throw new Error(`No auth user found for email: ${emailArg}`)
     }
+    userId = match.id
   }
 
   if (!userId) {
