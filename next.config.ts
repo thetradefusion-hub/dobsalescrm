@@ -35,7 +35,7 @@ const SECURITY_HEADERS = [
       // Next.js needs 'unsafe-inline' for its inline hydration script
       // and 'unsafe-eval' in dev + some production optimisations.
       // Nonce-based CSP is a later project.
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com",
       // Tailwind + inline style attributes on lots of components.
       "style-src 'self' 'unsafe-inline'",
       // Supabase public-bucket avatars, contact avatars (arbitrary
@@ -43,9 +43,9 @@ const SECURITY_HEADERS = [
       // tiny inline assets.
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
-      // Supabase REST + realtime (WSS). All Meta API calls happen
-      // server-side, so graph.facebook.com does not belong here.
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+      // Supabase REST + realtime (WSS) + Firebase / FCM.
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://fcm.googleapis.com https://firebaseinstallations.googleapis.com https://*.firebaseio.com",
+      "worker-src 'self'",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

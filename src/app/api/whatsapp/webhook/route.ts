@@ -458,14 +458,18 @@ async function processMessage(
   }
 
   // Push notification via FCM (non-blocking).
-  after(() =>
-    sendFcmNotificationsForMessage({
-      userId,
-      contactName: contactRecord.name || senderPhone,
-      contentText: contentText || `[${message.type}]`,
-      conversationId: conversation.id,
-    }).catch((err) => console.error('[fcm] webhook notify failed:', err)),
-  )
+  after(async () => {
+    try {
+      await sendFcmNotificationsForMessage({
+        userId,
+        contactName: contactRecord.name || senderPhone,
+        contentText: contentText || `[${message.type}]`,
+        conversationId: conversation.id,
+      })
+    } catch (err) {
+      console.error('[fcm] webhook notify failed:', err)
+    }
+  })
 
   // If this contact was a recent broadcast recipient, flag the reply
   // so the broadcast's `replied_count` advances (via the aggregate

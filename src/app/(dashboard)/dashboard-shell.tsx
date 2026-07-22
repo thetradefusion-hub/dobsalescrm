@@ -10,6 +10,7 @@ import { PushInitializer } from "@/components/layout/push-initializer";
 import { FcmForegroundListener } from "@/components/layout/fcm-foreground-listener";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { PwaInstallBanner } from "@/components/pwa/pwa-install-banner";
+import { PwaNotificationBanner } from "@/components/pwa/pwa-notification-banner";
 import { cn } from "@/lib/utils";
 
 function DashboardShellInner({ children }: { children: React.ReactNode }) {
@@ -101,6 +102,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
           </div>
         </main>
         {showPwaBanner && <PwaInstallBanner />}
+        <PwaNotificationBanner />
         {!isDesktop && (
           <MobileBottomNav
             onOpenSidebar={() => setSidebarOpen(true)}

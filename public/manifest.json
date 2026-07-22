@@ -9,6 +9,7 @@
   "theme_color": "#111b21",
   "orientation": "portrait-primary",
   "categories": ["business", "productivity"],
+  "gcm_sender_id": "103953800507",
   "icons": [
     {
       "src": "/apple-icon",

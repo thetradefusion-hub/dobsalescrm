@@ -12,9 +12,11 @@ import {
   CardDescription,
 } from '@/components/ui/card'
 import { isFirebaseClientConfigured } from '@/lib/firebase/config'
-import { requestFcmToken } from '@/lib/firebase/client'
-
-const TOKEN_STORAGE_KEY = 'wacrm_fcm_token'
+import {
+  FCM_TOKEN_STORAGE_KEY,
+  removeFcmToken,
+  requestFcmToken,
+} from '@/lib/firebase/client'
 
 export function PushNotificationsCard() {
   const [isSupported, setIsSupported] = useState(false)
@@ -33,34 +35,45 @@ export function PushNotificationsCard() {
     setIsSupported(supported)
     if (supported) {
       setPermission(Notification.permission)
-      setIsSubscribed(!!localStorage.getItem(TOKEN_STORAGE_KEY))
+      setIsSubscribed(!!localStorage.getItem(FCM_TOKEN_STORAGE_KEY))
     }
     setLoading(false)
   }, [firebaseReady])
+
+  const saveToken = async (token: string) => {
+    const res = await fetch('/api/notifications/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fcm_token: token,
+        device_label: navigator.userAgent.slice(0, 200),
+      }),
+    })
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}))
+      throw new Error(errData.error || 'Server rejected FCM token.')
+    }
+    localStorage.setItem(FCM_TOKEN_STORAGE_KEY, token)
+  }
 
   const subscribe = async () => {
     setActionLoading(true)
     try {
       const token = await requestFcmToken()
-
-      const res = await fetch('/api/notifications/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fcm_token: token,
-          device_label: navigator.userAgent.slice(0, 200),
-        }),
-      })
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        throw new Error(errData.error || 'Server rejected FCM token.')
-      }
-
-      localStorage.setItem(TOKEN_STORAGE_KEY, token)
+      await saveToken(token)
       setPermission(Notification.permission)
       setIsSubscribed(true)
       toast.success('Push notifications enabled!')
+
+      const testRes = await fetch('/api/notifications/test', { method: 'POST' })
+      const testData = await testRes.json().catch(() => ({}))
+      if (testRes.ok) {
+        toast.message(
+          `Test sent to ${testData.successCount}/${testData.tokenCount} device(s). Minimize this tab to see the system notification.`,
+        )
+      } else {
+        toast.error(testData.error || 'Enabled, but test push failed')
+      }
     } catch (err: unknown) {
       console.error('[fcm subscribe] failed:', err)
       toast.error(err instanceof Error ? err.message : 'Failed to enable notifications.')
@@ -72,7 +85,7 @@ export function PushNotificationsCard() {
   const unsubscribe = async () => {
     setActionLoading(true)
     try {
-      const token = localStorage.getItem(TOKEN_STORAGE_KEY)
+      const token = localStorage.getItem(FCM_TOKEN_STORAGE_KEY)
       if (token) {
         const res = await fetch('/api/notifications/subscribe', {
           method: 'DELETE',
@@ -85,7 +98,8 @@ export function PushNotificationsCard() {
         }
       }
 
-      localStorage.removeItem(TOKEN_STORAGE_KEY)
+      await removeFcmToken()
+      localStorage.removeItem(FCM_TOKEN_STORAGE_KEY)
       setIsSubscribed(false)
       toast.success('Notifications disabled.')
     } catch (err: unknown) {
@@ -170,46 +184,82 @@ export function PushNotificationsCard() {
               </p>
             )}
 
-            {isSubscribed ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={unsubscribe}
-                disabled={actionLoading}
-                className="gap-2 border-red-900/40 hover:bg-red-950/20 hover:text-red-400"
-              >
-                {actionLoading ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    Disabling…
-                  </>
-                ) : (
-                  <>
-                    <BellOff className="size-4" />
-                    Disable Notifications
-                  </>
-                )}
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                onClick={subscribe}
-                disabled={actionLoading || permission === 'denied'}
-                className="gap-2 bg-wa-green font-semibold text-black hover:bg-wa-green/80"
-              >
-                {actionLoading ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin text-black" />
-                    Enabling…
-                  </>
-                ) : (
-                  <>
+            <div className="flex flex-wrap gap-2">
+              {isSubscribed ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={unsubscribe}
+                    disabled={actionLoading}
+                    className="gap-2 border-red-900/40 hover:bg-red-950/20 hover:text-red-400"
+                  >
+                    {actionLoading ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Disabling…
+                      </>
+                    ) : (
+                      <>
+                        <BellOff className="size-4" />
+                        Disable Notifications
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={actionLoading}
+                    onClick={async () => {
+                      setActionLoading(true)
+                      try {
+                        const token = await requestFcmToken()
+                        await saveToken(token)
+                        const testRes = await fetch('/api/notifications/test', {
+                          method: 'POST',
+                        })
+                        const data = await testRes.json().catch(() => ({}))
+                        if (!testRes.ok) {
+                          throw new Error(data.error || 'Test failed')
+                        }
+                        toast.success(
+                          `Test sent (${data.successCount}/${data.tokenCount} devices). Minimize this tab if you don't see it.`,
+                        )
+                      } catch (err) {
+                        toast.error(
+                          err instanceof Error ? err.message : 'Test failed',
+                        )
+                      } finally {
+                        setActionLoading(false)
+                      }
+                    }}
+                    className="gap-2 border-wa-border"
+                  >
                     <Bell className="size-4" />
-                    Enable Notifications
-                  </>
-                )}
-              </Button>
-            )}
+                    Send test
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={subscribe}
+                  disabled={actionLoading || permission === 'denied'}
+                  className="gap-2 bg-wa-green font-semibold text-black hover:bg-wa-green/80"
+                >
+                  {actionLoading ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin text-black" />
+                      Enabling…
+                    </>
+                  ) : (
+                    <>
+                      <Bell className="size-4" />
+                      Enable Notifications
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </CardContent>
