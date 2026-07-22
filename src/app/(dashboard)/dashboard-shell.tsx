@@ -66,29 +66,37 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
         />
         <main
           className={cn(
-            "flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overscroll-y-contain",
-            isDesktop ? "overflow-y-auto" : "overflow-y-auto",
+            "flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-x-hidden overscroll-y-contain",
+            "overflow-y-auto",
             isInbox
               ? isDesktop
-                ? "overflow-hidden px-6 pb-6 pt-0"
+                ? "overflow-hidden p-0"
                 : "overflow-hidden px-0 pt-0"
               : isMobileAppDashboard
                 ? isDesktop
-                  ? "px-6 pt-0"
+                  ? "w-full px-4 pt-0 xl:px-6"
                   : "px-0 pt-0"
                 : isDesktop
-                  ? "p-6"
-                  : "p-4 sm:p-6",
-            !isDesktop && !inboxChatOpen
-              ? "pb-[calc(5.25rem+env(safe-area-inset-bottom))]"
-              : isDesktop
-                ? "pb-6"
-                : inboxChatOpen
-                  ? "pb-0"
-                  : undefined,
+                  ? "w-full p-4 xl:p-6"
+                  : "w-full p-4 sm:p-6",
+            isInbox
+              ? isDesktop
+                ? "pb-0"
+                : !inboxChatOpen
+                  ? "pb-[calc(5.25rem+env(safe-area-inset-bottom))]"
+                  : "pb-0"
+              : !isDesktop && !inboxChatOpen
+                ? "pb-[calc(5.25rem+env(safe-area-inset-bottom))]"
+                : isDesktop
+                  ? "pb-6"
+                  : inboxChatOpen
+                    ? "pb-0"
+                    : undefined,
           )}
         >
-          {children}
+          <div className="mx-auto flex min-h-0 w-full min-w-0 flex-1 flex-col">
+            {children}
+          </div>
         </main>
         {showPwaBanner && <PwaInstallBanner />}
         {!isDesktop && (

@@ -10,6 +10,7 @@ const PROTECTED_PATHS = [
   '/dashboard',
   '/inbox',
   '/contacts',
+  '/leads',
   '/pipelines',
   '/broadcasts',
   '/automations',

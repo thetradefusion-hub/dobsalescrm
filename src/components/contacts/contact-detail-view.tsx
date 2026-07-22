@@ -33,6 +33,8 @@ import {
 } from 'lucide-react';
 import { formatDealCurrency } from '@/lib/currency';
 import { LeadTemperatureBadge } from '@/components/pipelines/lead-temperature-badge';
+import { CreateLeadDialog } from '@/components/leads/create-lead-dialog';
+import Link from 'next/link';
 
 interface ContactDetailViewProps {
   open: boolean;
@@ -80,6 +82,7 @@ export function ContactDetailView({
   // Deals tab
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loadingDeals, setLoadingDeals] = useState(false);
+  const [createLeadOpen, setCreateLeadOpen] = useState(false);
 
   const fetchContact = useCallback(async () => {
     if (!contactId) return;
@@ -622,6 +625,25 @@ export function ContactDetailView({
 
               {/* Deals Tab */}
               <TabsContent value="deals" className="flex-1 overflow-y-auto px-4 py-3">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <Link
+                    href="/leads"
+                    className="text-xs text-wa-green hover:underline"
+                  >
+                    View all leads
+                  </Link>
+                  {!deals.some((d) => d.status === 'open') && contactId && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCreateLeadOpen(true)}
+                      className="h-7 border-wa-border text-xs text-wa-text/90"
+                    >
+                      <Plus className="size-3" />
+                      Create lead
+                    </Button>
+                  )}
+                </div>
                 {loadingDeals ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="size-5 animate-spin text-wa-green" />
@@ -681,6 +703,17 @@ export function ContactDetailView({
           </div>
         )}
       </SheetContent>
+
+      {contactId && (
+        <CreateLeadDialog
+          open={createLeadOpen}
+          onOpenChange={setCreateLeadOpen}
+          defaultContactId={contactId}
+          onCreated={() => {
+            void fetchDeals();
+          }}
+        />
+      )}
     </Sheet>
   );
 }

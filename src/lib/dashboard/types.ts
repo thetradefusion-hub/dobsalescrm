@@ -13,6 +13,10 @@ export interface MetricsBundle {
   openDealsValue: number
   openDealsCount: number
   messagesSentToday: MetricDelta
+  /** Open leads (same as open deals) with temperature breakdown. */
+  leadsTotal: number
+  leadsHot: number
+  leadsOverdue: number
 }
 
 export interface ConversationsSeriesPoint {
@@ -64,4 +68,35 @@ export interface ActivityItem {
   at: string
   /** Optional deep-link for the whole row (not all items have a target). */
   href?: string
+}
+
+export interface DashboardLeadRow {
+  id: string
+  title: string
+  value: number
+  currency?: string | null
+  lead_temperature: string | null
+  lead_score: number | null
+  follow_up_at: string | null
+  contact_name: string | null
+  contact_phone: string | null
+  stage_name: string | null
+  stage_color: string | null
+}
+
+export interface LeadsDashboardBundle {
+  stats: LeadStatsLike
+  hotLeads: DashboardLeadRow[]
+  overdueLeads: DashboardLeadRow[]
+}
+
+/** Mirror of lib/leads LeadStats — kept local to avoid circular imports. */
+export interface LeadStatsLike {
+  total: number
+  hot: number
+  warm: number
+  cold: number
+  unqualified: number
+  pipelineValue: number
+  overdueFollowUps: number
 }

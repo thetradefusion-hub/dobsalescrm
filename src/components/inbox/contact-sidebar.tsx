@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { formatDealCurrency } from "@/lib/currency";
@@ -11,14 +12,14 @@ import {
   Mail,
   Copy,
   Check,
-  User,
   Tag as TagIcon,
   DollarSign,
   StickyNote,
   Plus,
+  ExternalLink,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 
 interface ContactSidebarProps {
@@ -27,7 +28,10 @@ interface ContactSidebarProps {
   variant?: "sidebar" | "sheet";
 }
 
-export function ContactSidebar({ contact, variant = "sidebar" }: ContactSidebarProps) {
+export function ContactSidebar({
+  contact,
+  variant = "sidebar",
+}: ContactSidebarProps) {
   const [copied, setCopied] = useState(false);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [notes, setNotes] = useState<ContactNote[]>([]);
@@ -40,7 +44,6 @@ export function ContactSidebar({ contact, variant = "sidebar" }: ContactSidebarP
 
     const supabase = createClient();
 
-    // Fetch deals, notes, and tags in parallel
     const [dealsRes, notesRes, tagsRes] = await Promise.all([
       supabase
         .from("deals")
@@ -71,8 +74,6 @@ export function ContactSidebar({ contact, variant = "sidebar" }: ContactSidebarP
     }
   }, [contact]);
 
-  // Load on contact change. setContactData/setTags run inside async
-  // Supabase callbacks, not synchronously in the effect body.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchContactData();
@@ -83,9 +84,6 @@ export function ContactSidebar({ contact, variant = "sidebar" }: ContactSidebarP
     await navigator.clipboard.writeText(contact.phone);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-    // Dep is the whole `contact` object (not `contact?.phone`) so the
-    // React Compiler's inference agrees with the manual dep list —
-    // fixes the `preserve-manual-memoization` lint error.
   }, [contact]);
 
   const handleAddNote = useCallback(async () => {
@@ -119,8 +117,8 @@ export function ContactSidebar({ contact, variant = "sidebar" }: ContactSidebarP
     return (
       <div
         className={cn(
-          "flex h-full items-center justify-center bg-wa-panel",
-          variant === "sidebar" && "w-70 border-l border-wa-border",
+          "flex h-full min-h-0 items-center justify-center bg-wa-panel",
+          variant === "sidebar" && "w-72 border-l border-wa-border",
         )}
       >
         <p className="text-sm text-wa-muted/80">Select a conversation</p>
@@ -130,184 +128,226 @@ export function ContactSidebar({ contact, variant = "sidebar" }: ContactSidebarP
 
   const displayName = contact.name || contact.phone;
   const initials = displayName.charAt(0).toUpperCase();
+  const openDeals = deals.filter((d) => !d.status || d.status === "open");
+  const closedDeals = deals.filter(
+    (d) => d.status === "won" || d.status === "lost",
+  );
 
   return (
     <div
       className={cn(
-        "flex h-full flex-col bg-wa-panel",
-        variant === "sidebar" && "w-70 border-l border-wa-border",
+        "flex h-full min-h-0 flex-col overflow-hidden bg-wa-panel",
+        variant === "sidebar" && "w-72 border-l border-wa-border",
       )}
     >
-      <ScrollArea className="flex-1">
-        <div className="p-4">
-          {/* Contact Info */}
-          <div className="flex flex-col items-center text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-wa-elevated text-lg font-semibold text-wa-text">
-              {contact.avatar_url ? (
-                <img
-                  src={contact.avatar_url}
-                  alt={displayName}
-                  className="h-16 w-16 rounded-full object-cover"
-                />
-              ) : (
-                initials
-              )}
-            </div>
-            <h3 className="mt-3 text-sm font-semibold text-wa-text">
-              {displayName}
-            </h3>
-            {contact.company && (
-              <p className="text-xs text-wa-muted">{contact.company}</p>
+      {/* Sticky header */}
+      <div className="shrink-0 border-b border-wa-border px-4 pb-4 pt-4">
+        <div className="flex flex-col items-center text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-wa-elevated text-lg font-semibold text-wa-text">
+            {contact.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={contact.avatar_url}
+                alt={displayName}
+                className="h-14 w-14 rounded-full object-cover"
+              />
+            ) : (
+              initials
             )}
           </div>
+          <h3 className="mt-2.5 text-sm font-semibold text-wa-text">
+            {displayName}
+          </h3>
+          {contact.company ? (
+            <p className="mt-0.5 flex items-center gap-1 text-xs text-wa-muted">
+              <Building2 className="size-3" />
+              {contact.company}
+            </p>
+          ) : null}
+        </div>
 
-          {/* Phone */}
-          <div className="mt-4 space-y-2">
-            <button
-              onClick={handleCopyPhone}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-wa-text/90 transition-colors hover:bg-wa-surface"
-            >
-              <Phone className="h-4 w-4 text-wa-muted/80" />
-              <span className="flex-1 text-left">{contact.phone}</span>
-              {copied ? (
-                <Check className="h-3 w-3 text-wa-green" />
-              ) : (
-                <Copy className="h-3 w-3 text-wa-muted" />
-              )}
-            </button>
-
-            {contact.email && (
-              <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-wa-text/90">
-                <Mail className="h-4 w-4 text-wa-muted/80" />
-                <span className="truncate">{contact.email}</span>
-              </div>
+        <div className="mt-3 space-y-1">
+          <button
+            type="button"
+            onClick={handleCopyPhone}
+            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-wa-text/90 transition-colors hover:bg-wa-surface"
+          >
+            <Phone className="h-3.5 w-3.5 shrink-0 text-wa-muted/80" />
+            <span className="min-w-0 flex-1 truncate text-left text-xs">
+              {contact.phone}
+            </span>
+            {copied ? (
+              <Check className="h-3 w-3 text-wa-green" />
+            ) : (
+              <Copy className="h-3 w-3 text-wa-muted" />
             )}
+          </button>
+
+          {contact.email ? (
+            <div className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-wa-text/90">
+              <Mail className="h-3.5 w-3.5 shrink-0 text-wa-muted/80" />
+              <span className="truncate">{contact.email}</span>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Scrollable body — native overflow so content is never clipped */}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
+        {/* Tags */}
+        <section>
+          <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-wa-muted/80">
+            <TagIcon className="h-3 w-3" />
+            Tags
           </div>
-
-          {/* Divider */}
-          <div className="my-4 border-t border-wa-border" />
-
-          {/* Tags */}
-          <div>
-            <div className="flex items-center gap-2 px-1 text-xs font-medium uppercase tracking-wider text-wa-muted/80">
-              <TagIcon className="h-3 w-3" />
-              Tags
-            </div>
-            <div className="mt-2 flex flex-wrap gap-1">
-              {tags.length === 0 ? (
-                <p className="px-1 text-xs text-wa-muted">No tags</p>
-              ) : (
-                tags.map((tag) => (
-                  <span
-                    key={tag.contact_tag_id}
-                    className="rounded-full px-2 py-0.5 text-[10px] font-medium"
-                    style={{
-                      backgroundColor: `${tag.color}20`,
-                      color: tag.color,
-                    }}
-                  >
-                    {tag.name}
-                  </span>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="my-4 border-t border-wa-border" />
-
-          {/* Active Deals */}
-          <div>
-            <div className="flex items-center gap-2 px-1 text-xs font-medium uppercase tracking-wider text-wa-muted/80">
-              <DollarSign className="h-3 w-3" />
-              Active Deals
-            </div>
-            <div className="mt-2 space-y-2">
-              {deals.length === 0 ? (
-                <p className="px-1 text-xs text-wa-muted">No deals</p>
-              ) : (
-                deals.map((deal) => (
-                  <div
-                    key={deal.id}
-                    className="rounded-lg bg-wa-surface px-3 py-2"
-                  >
-                    <p className="text-sm font-medium text-wa-text">
-                      {deal.title}
-                    </p>
-                    <LeadTemperatureBadge
-                      temperature={deal.lead_temperature}
-                      score={deal.lead_score}
-                      className="mt-1"
-                    />
-                    <div className="mt-1 flex items-center justify-between text-xs text-wa-muted">
-                      <span>
-                        {formatDealCurrency(Number(deal.value || 0), deal.currency)}
-                      </span>
-                      {deal.stage && (
-                        <span
-                          className="rounded-full px-1.5 py-0.5 text-[10px]"
-                          style={{
-                            backgroundColor: `${deal.stage.color}20`,
-                            color: deal.stage.color,
-                          }}
-                        >
-                          {deal.stage.name}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="my-4 border-t border-wa-border" />
-
-          {/* Notes */}
-          <div>
-            <div className="flex items-center gap-2 px-1 text-xs font-medium uppercase tracking-wider text-wa-muted/80">
-              <StickyNote className="h-3 w-3" />
-              Notes
-            </div>
-            <div className="mt-2">
-              <div className="flex gap-2">
-                <textarea
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  placeholder="Add a note..."
-                  rows={2}
-                  className="flex-1 resize-none rounded-lg border border-wa-border bg-wa-surface px-3 py-2 text-xs text-wa-text placeholder:text-wa-muted/80 outline-none focus:border-wa-green/50"
-                />
-                <Button
-                  size="sm"
-                  className="h-auto bg-wa-bubble-out px-2 hover:bg-wa-green"
-                  onClick={handleAddNote}
-                  disabled={!newNote.trim() || addingNote}
+          <div className="mt-2 flex flex-wrap gap-1">
+            {tags.length === 0 ? (
+              <p className="text-xs text-wa-muted">No tags</p>
+            ) : (
+              tags.map((tag) => (
+                <span
+                  key={tag.contact_tag_id}
+                  className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  style={{
+                    backgroundColor: `${tag.color}20`,
+                    color: tag.color,
+                  }}
                 >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
+                  {tag.name}
+                </span>
+              ))
+            )}
+          </div>
+        </section>
 
-              <div className="mt-2 space-y-2">
-                {notes.map((note) => (
+        <div className="my-3 border-t border-wa-border" />
+
+        {/* Deals / Leads */}
+        <section>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-wa-muted/80">
+              <DollarSign className="h-3 w-3" />
+              Deals & Leads
+            </div>
+            <Link
+              href="/leads"
+              className="inline-flex items-center gap-0.5 text-[10px] font-medium text-wa-green hover:underline"
+            >
+              View all
+              <ExternalLink className="size-2.5" />
+            </Link>
+          </div>
+          <div className="mt-2 space-y-2">
+            {deals.length === 0 ? (
+              <p className="text-xs text-wa-muted">No deals yet</p>
+            ) : (
+              <>
+                {openDeals.map((deal) => (
+                  <DealCard key={deal.id} deal={deal} />
+                ))}
+                {closedDeals.map((deal) => (
+                  <DealCard key={deal.id} deal={deal} />
+                ))}
+              </>
+            )}
+          </div>
+        </section>
+
+        <div className="my-3 border-t border-wa-border" />
+
+        {/* Notes */}
+        <section className="pb-6">
+          <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-wa-muted/80">
+            <StickyNote className="h-3 w-3" />
+            Notes
+          </div>
+          <div className="mt-2">
+            <div className="flex gap-2">
+              <textarea
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                placeholder="Add a note..."
+                rows={2}
+                className="min-h-[56px] flex-1 resize-none rounded-lg border border-wa-border bg-wa-surface px-3 py-2 text-xs text-wa-text placeholder:text-wa-muted/80 outline-none focus:border-wa-green/50"
+              />
+              <Button
+                size="sm"
+                className="h-auto self-stretch bg-wa-bubble-out px-2 hover:bg-wa-green"
+                onClick={handleAddNote}
+                disabled={!newNote.trim() || addingNote}
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
+
+            <div className="mt-2 space-y-2">
+              {notes.length === 0 ? (
+                <p className="text-xs text-wa-muted">No notes yet</p>
+              ) : (
+                notes.map((note) => (
                   <div
                     key={note.id}
                     className="rounded-lg bg-wa-surface px-3 py-2"
                   >
-                    <p className="whitespace-pre-wrap text-xs text-wa-text/90">
+                    <p className="whitespace-pre-wrap break-words text-xs leading-relaxed text-wa-text/90">
                       {note.note_text}
                     </p>
-                    <p className="mt-1 text-[10px] text-wa-muted">
+                    <p className="mt-1.5 text-[10px] text-wa-muted">
                       {format(new Date(note.created_at), "MMM d, yyyy HH:mm")}
                     </p>
                   </div>
-                ))}
-              </div>
+                ))
+              )}
             </div>
           </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function DealCard({ deal }: { deal: Deal }) {
+  const status = deal.status ?? "open";
+  return (
+    <div className="rounded-lg border border-wa-border/60 bg-wa-surface px-3 py-2">
+      <p className="text-sm font-medium leading-snug text-wa-text">
+        {deal.title}
+      </p>
+      <LeadTemperatureBadge
+        temperature={deal.lead_temperature}
+        score={deal.lead_score}
+        className="mt-1.5"
+      />
+      <div className="mt-1.5 flex flex-wrap items-center justify-between gap-1 text-xs text-wa-muted">
+        <span className="font-medium text-wa-text/80">
+          {formatDealCurrency(Number(deal.value || 0), deal.currency)}
+        </span>
+        <div className="flex items-center gap-1">
+          {deal.stage ? (
+            <span
+              className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+              style={{
+                backgroundColor: `${deal.stage.color}20`,
+                color: deal.stage.color,
+              }}
+            >
+              {deal.stage.name}
+            </span>
+          ) : null}
+          {status !== "open" ? (
+            <span
+              className={cn(
+                "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                status === "won"
+                  ? "bg-wa-green/15 text-wa-green"
+                  : "bg-red-500/15 text-red-400",
+              )}
+            >
+              {status === "won" ? "Won" : "Lost"}
+            </span>
+          ) : null}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

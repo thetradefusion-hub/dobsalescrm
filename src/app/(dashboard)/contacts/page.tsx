@@ -44,11 +44,15 @@ import {
 import { ContactForm } from '@/components/contacts/contact-form';
 import { ContactDetailView } from '@/components/contacts/contact-detail-view';
 import { ImportModal } from '@/components/contacts/import-modal';
+import { LeadTemperatureBadge } from '@/components/pipelines/lead-temperature-badge';
+import { fetchContactLeadSummaries } from '@/lib/leads/queries';
+import type { ContactLeadSummary } from '@/lib/leads/types';
 
 const PAGE_SIZE = 25;
 
 interface ContactWithTags extends Contact {
   tags?: Tag[];
+  lead?: ContactLeadSummary;
 }
 
 export default function ContactsPage() {
@@ -129,11 +133,14 @@ export default function ContactsPage() {
       tagsByContact[ct.contact_id].push(ct.tag_id);
     });
 
+    const leadSummaries = await fetchContactLeadSummaries(supabase, contactIds);
+
     const enriched: ContactWithTags[] = data.map((c) => ({
       ...c,
       tags: (tagsByContact[c.id] ?? [])
         .map((tid) => tagsMap[tid])
         .filter(Boolean),
+      lead: leadSummaries.get(c.id),
     }));
 
     setContacts(enriched);
@@ -260,6 +267,7 @@ export default function ContactsPage() {
               <TableHead className="text-wa-muted hidden md:table-cell">Email</TableHead>
               <TableHead className="text-wa-muted hidden lg:table-cell">Company</TableHead>
               <TableHead className="text-wa-muted hidden md:table-cell">Tags</TableHead>
+              <TableHead className="text-wa-muted hidden sm:table-cell">Lead</TableHead>
               <TableHead className="text-wa-muted hidden lg:table-cell">Created</TableHead>
               <TableHead className="text-wa-muted w-12" />
             </TableRow>
@@ -267,7 +275,7 @@ export default function ContactsPage() {
           <TableBody>
             {loading ? (
               <TableRow className="border-wa-border">
-                <TableCell colSpan={7} className="text-center py-12">
+                <TableCell colSpan={8} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Loader2 className="size-6 animate-spin text-wa-green" />
                     <p className="text-sm text-wa-muted/80">Loading contacts...</p>
@@ -276,7 +284,7 @@ export default function ContactsPage() {
               </TableRow>
             ) : contacts.length === 0 ? (
               <TableRow className="border-wa-border">
-                <TableCell colSpan={7} className="text-center py-12">
+                <TableCell colSpan={8} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Users className="size-8 text-wa-muted" />
                     <p className="text-sm text-wa-muted/80">
@@ -339,6 +347,21 @@ export default function ContactsPage() {
                         </span>
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    {contact.lead ? (
+                      <div className="flex flex-col gap-1">
+                        <LeadTemperatureBadge
+                          temperature={contact.lead.lead_temperature}
+                          score={contact.lead.lead_score}
+                        />
+                        <span className="max-w-[140px] truncate text-[10px] text-wa-muted">
+                          {contact.lead.title}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-wa-muted">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-wa-muted/80 text-xs hidden lg:table-cell">
                     {new Date(contact.created_at).toLocaleDateString('en-US', {

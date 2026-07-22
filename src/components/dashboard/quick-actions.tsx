@@ -1,7 +1,7 @@
 "use client"
 
 import Link from 'next/link'
-import { UserPlus, Briefcase, Radio, Zap, ChevronRight } from 'lucide-react'
+import { UserPlus, Briefcase, Radio, Zap, ChevronRight, Target } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -14,6 +14,13 @@ interface Action {
 }
 
 const ACTIONS: Action[] = [
+  {
+    label: 'Lead',
+    description: 'Manage opportunities',
+    href: '/leads',
+    icon: Target,
+    iconClass: 'bg-red-500/10 text-red-500 ring-red-500/20 dark:text-red-400',
+  },
   {
     label: 'Contact',
     description: 'Add to your CRM',
@@ -56,7 +63,7 @@ export function QuickActions() {
 
       {/* Mobile — premium icon grid */}
       <div className="wa-glass-panel rounded-2xl border border-wa-border/70 p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.2)] lg:hidden">
-        <div className="grid grid-cols-4 gap-0.5">
+        <div className="grid grid-cols-5 gap-0.5">
           {ACTIONS.map((a) => {
             const Icon = a.icon
             return (
@@ -83,7 +90,7 @@ export function QuickActions() {
       </div>
 
       {/* Desktop — list cards */}
-      <div className="hidden gap-3 sm:grid sm:grid-cols-2 xl:grid-cols-4">
+      <div className="hidden gap-3 sm:grid sm:grid-cols-2 xl:grid-cols-5">
         {ACTIONS.map((a) => {
           const Icon = a.icon
           return (

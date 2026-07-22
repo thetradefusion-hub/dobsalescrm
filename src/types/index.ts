@@ -158,6 +158,8 @@ export interface Deal {
   lead_score?: number | null;
   qualified_at?: string | null;
   lead_budget_inr?: number | null;
+  /** Next manual follow-up set by sales (migration 018). */
+  follow_up_at?: string | null;
   created_at: string;
   updated_at?: string;
   contact?: Contact;

@@ -2,7 +2,7 @@ import { ArrowDown, ArrowUp, Minus } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { cn } from '@/lib/utils'
 
-export type MetricAccent = 'green' | 'blue' | 'amber' | 'teal'
+export type MetricAccent = 'green' | 'blue' | 'amber' | 'teal' | 'red'
 
 const ACCENT: Record<
   MetricAccent,
@@ -27,6 +27,11 @@ const ACCENT: Record<
     bar: 'bg-wa-teal',
     icon: 'bg-wa-teal/10 text-wa-teal ring-wa-teal/25',
     glow: 'group-hover:shadow-wa-teal/10',
+  },
+  red: {
+    bar: 'bg-red-500',
+    icon: 'bg-red-500/10 text-red-500 ring-red-500/25 dark:text-red-400',
+    glow: 'group-hover:shadow-red-500/10',
   },
 }
 

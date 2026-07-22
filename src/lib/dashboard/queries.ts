@@ -10,12 +10,14 @@ import {
 import type {
   ActivityItem,
   ConversationsSeriesPoint,
+  DashboardLeadRow,
   MetricsBundle,
   PipelineDonutData,
   PipelineStageSlice,
   ResponseTimeBucket,
   ResponseTimeSummary,
 } from './types'
+import { isFollowUpOverdue } from '@/lib/leads/format-follow-up'
 
 // ------------------------------------------------------------
 // All client-side aggregation. RLS scopes every query to the
@@ -61,7 +63,7 @@ export async function loadMetrics(db: DB): Promise<MetricsBundle> {
       .select('id', { count: 'exact', head: true })
       .gte('created_at', yesterdayStart)
       .lt('created_at', todayStart),
-    db.from('deals').select('value, status').eq('status', 'open'),
+    db.from('deals').select('value, status, lead_temperature, follow_up_at').eq('status', 'open'),
     db
       .from('messages')
       .select('id', { count: 'exact', head: true })
@@ -75,8 +77,19 @@ export async function loadMetrics(db: DB): Promise<MetricsBundle> {
       .lt('created_at', todayStart),
   ])
 
-  const openDealsRows = (openDeals.data ?? []) as { value: number | null }[]
+  const openDealsRows = (openDeals.data ?? []) as {
+    value: number | null
+    lead_temperature: string | null
+    follow_up_at: string | null
+  }[]
   const openDealsValue = openDealsRows.reduce((sum, d) => sum + (d.value ?? 0), 0)
+  const now = new Date()
+  let leadsHot = 0
+  let leadsOverdue = 0
+  for (const d of openDealsRows) {
+    if (d.lead_temperature === 'hot') leadsHot++
+    if (isFollowUpOverdue(d.follow_up_at, now)) leadsOverdue++
+  }
 
   return {
     activeConversations: {
@@ -96,6 +109,9 @@ export async function loadMetrics(db: DB): Promise<MetricsBundle> {
       current: messagesToday.count ?? 0,
       previous: messagesYesterday.count ?? 0,
     },
+    leadsTotal: openDealsRows.length,
+    leadsHot,
+    leadsOverdue,
   }
 }
 
@@ -395,4 +411,91 @@ export async function loadActivity(db: DB, limit = 20): Promise<ActivityItem[]> 
   return items
     .sort((a, b) => (a.at > b.at ? -1 : a.at < b.at ? 1 : 0))
     .slice(0, limit)
+}
+
+// --- Leads overview (dashboard) ----------------------------------------
+
+export async function loadLeadsDashboard(db: DB): Promise<{
+  stats: import('./types').LeadStatsLike
+  hotLeads: DashboardLeadRow[]
+  overdueLeads: DashboardLeadRow[]
+}> {
+  const { data, error } = await db
+    .from('deals')
+    .select(
+      'id, title, value, currency, lead_temperature, lead_score, follow_up_at, contact:contacts(name, phone), stage:pipeline_stages(name, color)',
+    )
+    .eq('status', 'open')
+    .order('updated_at', { ascending: false })
+    .limit(100)
+
+  if (error) throw error
+
+  const now = new Date()
+  const stats: import('./types').LeadStatsLike = {
+    total: 0,
+    hot: 0,
+    warm: 0,
+    cold: 0,
+    unqualified: 0,
+    pipelineValue: 0,
+    overdueFollowUps: 0,
+  }
+
+  const rows: DashboardLeadRow[] = []
+
+  for (const raw of data ?? []) {
+    const row = raw as {
+      id: string
+      title: string
+      value: number | null
+      currency: string | null
+      lead_temperature: string | null
+      lead_score: number | null
+      follow_up_at: string | null
+      contact:
+        | { name: string | null; phone: string | null }
+        | { name: string | null; phone: string | null }[]
+        | null
+      stage:
+        | { name: string; color: string }
+        | { name: string; color: string }[]
+        | null
+    }
+
+    const contact = Array.isArray(row.contact) ? row.contact[0] : row.contact
+    const stage = Array.isArray(row.stage) ? row.stage[0] : row.stage
+
+    stats.total++
+    stats.pipelineValue += Number(row.value) || 0
+    if (row.lead_temperature === 'hot') stats.hot++
+    else if (row.lead_temperature === 'warm') stats.warm++
+    else if (row.lead_temperature === 'cold') stats.cold++
+    else stats.unqualified++
+    if (isFollowUpOverdue(row.follow_up_at, now)) stats.overdueFollowUps++
+
+    rows.push({
+      id: row.id,
+      title: row.title,
+      value: Number(row.value) || 0,
+      currency: row.currency,
+      lead_temperature: row.lead_temperature,
+      lead_score: row.lead_score,
+      follow_up_at: row.follow_up_at,
+      contact_name: contact?.name ?? null,
+      contact_phone: contact?.phone ?? null,
+      stage_name: stage?.name ?? null,
+      stage_color: stage?.color ?? null,
+    })
+  }
+
+  const hotLeads = rows
+    .filter((r) => r.lead_temperature === 'hot')
+    .slice(0, 4)
+
+  const overdueLeads = rows
+    .filter((r) => isFollowUpOverdue(r.follow_up_at, now))
+    .slice(0, 4)
+
+  return { stats, hotLeads, overdueLeads }
 }

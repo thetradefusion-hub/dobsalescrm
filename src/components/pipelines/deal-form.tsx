@@ -11,6 +11,7 @@ import type {
   PipelineStage,
   Profile,
 } from "@/types";
+import type { LeadTemperature } from "@/lib/ai/lead-qualification";
 import {
   Sheet,
   SheetContent,
@@ -63,7 +64,11 @@ export function DealForm({
   const [stageId, setStageId] = useState("");
   const [assignedTo, setAssignedTo] = useState("");
   const [expectedCloseDate, setExpectedCloseDate] = useState("");
+  const [followUpAt, setFollowUpAt] = useState("");
   const [notes, setNotes] = useState("");
+  const [leadTemperature, setLeadTemperature] = useState<LeadTemperature | "">("");
+  const [leadScore, setLeadScore] = useState("");
+  const [leadBudgetInr, setLeadBudgetInr] = useState("");
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -92,7 +97,15 @@ export function DealForm({
       setStageId(deal.stage_id);
       setAssignedTo(deal.assigned_to ?? "");
       setExpectedCloseDate(deal.expected_close_date ?? "");
+      setFollowUpAt(
+        deal.follow_up_at ? new Date(deal.follow_up_at).toISOString().slice(0, 16) : "",
+      );
       setNotes(deal.notes ?? "");
+      setLeadTemperature(deal.lead_temperature ?? "");
+      setLeadScore(deal.lead_score != null ? String(deal.lead_score) : "");
+      setLeadBudgetInr(
+        deal.lead_budget_inr != null ? String(deal.lead_budget_inr) : "",
+      );
     } else {
       setTitle("");
       setValue("");
@@ -101,7 +114,11 @@ export function DealForm({
       setStageId(defaultStageId || stages[0]?.id || "");
       setAssignedTo("");
       setExpectedCloseDate("");
+      setFollowUpAt("");
       setNotes("");
+      setLeadTemperature("");
+      setLeadScore("");
+      setLeadBudgetInr("");
     }
   }, [open, deal, defaultStageId, stages]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -157,6 +174,13 @@ export function DealForm({
     }
     setSaving(true);
 
+    const parsedScore = leadScore.trim()
+      ? Number.parseInt(leadScore, 10)
+      : null;
+    const parsedBudget = leadBudgetInr.trim()
+      ? Number.parseInt(leadBudgetInr, 10)
+      : null;
+
     const payload = {
       title: title.trim(),
       value: parseFloat(value) || 0,
@@ -167,6 +191,19 @@ export function DealForm({
       assigned_to: assignedTo || null,
       notes: notes.trim() || null,
       expected_close_date: expectedCloseDate || null,
+      follow_up_at: followUpAt ? new Date(followUpAt).toISOString() : null,
+      lead_temperature: leadTemperature || null,
+      lead_score:
+        parsedScore != null && Number.isFinite(parsedScore)
+          ? Math.min(100, Math.max(0, parsedScore))
+          : null,
+      lead_budget_inr:
+        parsedBudget != null && Number.isFinite(parsedBudget)
+          ? parsedBudget
+          : null,
+      qualified_at: leadTemperature
+        ? deal?.qualified_at ?? new Date().toISOString()
+        : null,
     };
 
     if (deal) {
@@ -330,6 +367,16 @@ export function DealForm({
             </div>
 
             <div className="grid gap-2">
+              <Label className="text-wa-text/90">Follow-up</Label>
+              <Input
+                type="datetime-local"
+                value={followUpAt}
+                onChange={(e) => setFollowUpAt(e.target.value)}
+                className="border-wa-border bg-wa-surface text-wa-text"
+              />
+            </div>
+
+            <div className="grid gap-2">
               <Label className="text-wa-text/90">Stage</Label>
               <select
                 value={stageId}
@@ -368,6 +415,52 @@ export function DealForm({
                 placeholder="Add notes..."
                 className="min-h-[100px] border-wa-border bg-wa-surface text-wa-text"
               />
+            </div>
+
+            <div className="space-y-3 rounded-lg border border-wa-border bg-wa-panel/50 p-3">
+              <p className="text-xs font-medium uppercase tracking-wider text-wa-muted">
+                Lead qualification
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="grid gap-2">
+                  <Label className="text-wa-text/90">Temperature</Label>
+                  <select
+                    value={leadTemperature}
+                    onChange={(e) =>
+                      setLeadTemperature(e.target.value as LeadTemperature | "")
+                    }
+                    className="h-9 w-full rounded-lg border border-wa-border bg-wa-surface px-2.5 text-sm text-wa-text outline-none focus:border-wa-green"
+                  >
+                    <option value="">None</option>
+                    <option value="hot">Hot</option>
+                    <option value="warm">Warm</option>
+                    <option value="cold">Cold</option>
+                  </select>
+                </div>
+                <div className="grid gap-2">
+                  <Label className="text-wa-text/90">Score</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={leadScore}
+                    onChange={(e) => setLeadScore(e.target.value)}
+                    placeholder="0–100"
+                    className="border-wa-border bg-wa-surface text-wa-text"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label className="text-wa-text/90">Budget (₹)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={leadBudgetInr}
+                    onChange={(e) => setLeadBudgetInr(e.target.value)}
+                    placeholder="INR"
+                    className="border-wa-border bg-wa-surface text-wa-text"
+                  />
+                </div>
+              </div>
             </div>
 
             {deal && (

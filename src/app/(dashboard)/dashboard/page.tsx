@@ -9,11 +9,13 @@ import {
   IndianRupee,
   Send,
   Inbox,
+  Flame,
 } from 'lucide-react'
 
 import {
   loadActivity,
   loadConversationsSeries,
+  loadLeadsDashboard,
   loadMetrics,
   loadPipelineDonut,
   loadResponseTime,
@@ -21,6 +23,8 @@ import {
 import type {
   ActivityItem,
   ConversationsSeriesPoint,
+  DashboardLeadRow,
+  LeadStatsLike,
   MetricsBundle,
   PipelineDonutData,
   ResponseTimeSummary,
@@ -35,6 +39,7 @@ import { ConversationsChart } from '@/components/dashboard/conversations-chart'
 import { PipelineDonut } from '@/components/dashboard/pipeline-donut'
 import { ResponseTimeChart } from '@/components/dashboard/response-time-chart'
 import { ActivityFeed } from '@/components/dashboard/activity-feed'
+import { LeadsOverview } from '@/components/dashboard/leads-overview'
 import { formatDealCurrency } from '@/lib/currency'
 import { useIsDesktopLayout } from '@/hooks/use-media-query'
 import { cn } from '@/lib/utils'
@@ -62,6 +67,11 @@ export default function DashboardPage() {
   const [activity, setActivity] = useState<ActivityItem[] | null>(null)
   const [activityLoading, setActivityLoading] = useState(true)
 
+  const [leadStats, setLeadStats] = useState<LeadStatsLike | null>(null)
+  const [hotLeads, setHotLeads] = useState<DashboardLeadRow[]>([])
+  const [overdueLeads, setOverdueLeads] = useState<DashboardLeadRow[]>([])
+  const [leadsLoading, setLeadsLoading] = useState(true)
+
   const [refreshing, setRefreshing] = useState(false)
   const isDesktop = useIsDesktopLayout()
 
@@ -74,6 +84,7 @@ export default function DashboardPage() {
       setPipelineLoading(true)
       setResponseTimeLoading(true)
       setActivityLoading(true)
+      setLeadsLoading(true)
     }
 
     void loadMetrics(db)
@@ -95,6 +106,15 @@ export default function DashboardPage() {
       .then((r) => setResponseTime(r))
       .catch((err) => console.error('[dashboard] response time failed:', err))
       .finally(() => setResponseTimeLoading(false))
+
+    void loadLeadsDashboard(db)
+      .then((l) => {
+        setLeadStats(l.stats)
+        setHotLeads(l.hotLeads)
+        setOverdueLeads(l.overdueLeads)
+      })
+      .catch((err) => console.error('[dashboard] leads failed:', err))
+      .finally(() => setLeadsLoading(false))
 
     void loadActivity(db, 50)
       .then((a) => setActivity(a))
@@ -131,50 +151,45 @@ export default function DashboardPage() {
   }, [loadAll, range])
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1400px] space-y-4 overflow-x-hidden pb-2 lg:space-y-6 lg:pb-0 lg:bg-transparent">
+    <div className="flex w-full min-w-0 flex-1 flex-col space-y-4 overflow-x-hidden pb-2 lg:space-y-5 lg:pb-0">
       <div className={cn(!isDesktop && 'wa-mobile-shell', 'lg:bg-transparent')}>
         <DashboardHeader onRefresh={handleRefresh} isRefreshing={refreshing} />
 
-        {/* Mobile inbox shortcut — premium glass CTA */}
         {!isDesktop && (
-        <div className="wa-fade-in px-4 pb-1 pt-3">
-          <Link
-            href="/inbox"
-            className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-wa-green/30 bg-gradient-to-r from-wa-green to-wa-teal p-4 shadow-lg shadow-wa-green/25 active:scale-[0.98]"
-          >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <Inbox className="h-5 w-5 text-white" aria-hidden />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-white">Open Inbox</p>
-              <p className="text-xs text-white/80">Reply to WhatsApp chats</p>
-            </div>
-            <span className="rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
-              Go
-            </span>
-          </Link>
-        </div>
+          <div className="wa-fade-in px-4 pb-1 pt-3">
+            <Link
+              href="/inbox"
+              className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-wa-green/30 bg-gradient-to-r from-wa-green to-wa-teal p-4 shadow-lg shadow-wa-green/25 active:scale-[0.98]"
+            >
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+                <Inbox className="h-5 w-5 text-white" aria-hidden />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-white">Open Inbox</p>
+                <p className="text-xs text-white/80">Reply to WhatsApp chats</p>
+              </div>
+              <span className="rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
+                Go
+              </span>
+            </Link>
+          </div>
         )}
       </div>
 
-      <section>
+      <section className="w-full px-4 lg:px-0">
         <SectionHeading
           title="Overview"
-          description="Key metrics compared to yesterday where available"
+          description="Key metrics across inbox, contacts, and leads"
         />
-        {/* Mobile: horizontal swipe cards */}
-        <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] lg:grid lg:grid-cols-2 lg:gap-4 lg:overflow-visible lg:px-0 lg:pb-0 lg:snap-none xl:grid-cols-4 [&::-webkit-scrollbar]:hidden">
+        {/* Full-width grid — no horizontal side-scroll */}
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
           {metricsLoading || !metrics ? (
-            Array.from({ length: 4 }).map((_, i) => (
-              <SkeletonCard
-                key={i}
-                className="min-w-[72%] sm:min-w-[48%] lg:min-w-0"
-              />
+            Array.from({ length: 5 }).map((_, i) => (
+              <SkeletonCard key={i} />
             ))
           ) : (
             <>
               <MetricCard
-                className="min-w-[72%] sm:min-w-[48%] lg:min-w-0"
                 title="Active Conversations"
                 value={metrics.activeConversations.current.toLocaleString()}
                 icon={MessageSquare}
@@ -185,7 +200,6 @@ export default function DashboardPage() {
                 }}
               />
               <MetricCard
-                className="min-w-[72%] sm:min-w-[48%] lg:min-w-0"
                 title="New Contacts Today"
                 value={metrics.newContactsToday.current.toLocaleString()}
                 icon={UserPlus}
@@ -200,7 +214,13 @@ export default function DashboardPage() {
                 }}
               />
               <MetricCard
-                className="min-w-[72%] sm:min-w-[48%] lg:min-w-0"
+                title="Hot Leads"
+                value={metrics.leadsHot.toLocaleString()}
+                icon={Flame}
+                accent="red"
+                subtitle={`${metrics.leadsTotal} open · ${metrics.leadsOverdue} overdue`}
+              />
+              <MetricCard
                 title="Open Deals Value"
                 value={formatDealCurrency(metrics.openDealsValue)}
                 icon={IndianRupee}
@@ -208,7 +228,6 @@ export default function DashboardPage() {
                 subtitle={`${metrics.openDealsCount} open deal${metrics.openDealsCount === 1 ? '' : 's'}`}
               />
               <MetricCard
-                className="min-w-[72%] sm:min-w-[48%] lg:min-w-0"
                 title="Messages Sent Today"
                 value={metrics.messagesSentToday.current.toLocaleString()}
                 icon={Send}
@@ -227,16 +246,27 @@ export default function DashboardPage() {
         </div>
       </section>
 
+      <div className="w-full px-4 lg:px-0">
+        <LeadsOverview
+          stats={leadStats}
+          hotLeads={hotLeads}
+          overdueLeads={overdueLeads}
+          loading={leadsLoading}
+        />
+      </div>
+
       <QuickActions />
 
-      <section>
-        <SectionHeading
-          title="Analytics"
-          description="Conversation trends, pipeline value, and response performance"
-        />
+      <section className="w-full">
+        <div className="px-4 lg:px-0">
+          <SectionHeading
+            title="Analytics"
+            description="Conversation trends, pipeline value, and response performance"
+          />
+        </div>
         <div className="space-y-4 px-4 lg:px-0">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-            <div className="h-full lg:col-span-3">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
+            <div className="h-full min-w-0 xl:col-span-3">
               <ConversationsChart
                 series={series}
                 loading={seriesLoading}
@@ -244,7 +274,7 @@ export default function DashboardPage() {
                 onRangeChange={handleRangeChange}
               />
             </div>
-            <div className="h-full lg:col-span-2">
+            <div className="h-full min-w-0 xl:col-span-2">
               <PipelineDonut data={pipeline} loading={pipelineLoading} />
             </div>
           </div>
@@ -252,7 +282,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="px-4 lg:px-0">
+      <section className="w-full px-4 lg:px-0">
         <ActivityFeed items={activity} loading={activityLoading} />
       </section>
     </div>

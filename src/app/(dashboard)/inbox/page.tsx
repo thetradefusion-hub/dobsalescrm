@@ -286,7 +286,7 @@ export default function InboxPage() {
   const hasActiveConv = !!activeConversation;
 
   return (
-    <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden lg:-m-6 lg:h-[calc(100dvh-3.5rem)]">
+    <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden lg:h-full">
       {/* WhatsApp connection banner — in the flex column, not absolute,
           so it pushes the panels down instead of overlapping them. */}
       {whatsappConnected === false && (
@@ -304,7 +304,7 @@ export default function InboxPage() {
             thread can occupy the full width. Always visible on lg+. */}
         <div
           className={cn(
-            "flex h-full min-w-0 flex-1 lg:flex-none",
+            "flex h-full min-h-0 min-w-0 flex-1 lg:flex-none",
             !isDesktop && hasActiveConv ? "hidden" : "flex wa-slide-in-left",
           )}
         >
@@ -322,7 +322,7 @@ export default function InboxPage() {
             (shows its own empty-state if no thread is picked yet). */}
         <div
           className={cn(
-            "flex h-full flex-1 lg:flex",
+            "flex h-full min-h-0 flex-1 lg:flex",
             hasActiveConv ? "flex wa-slide-in-right" : "hidden lg:flex",
           )}
         >
@@ -339,9 +339,10 @@ export default function InboxPage() {
           />
         </div>
 
-        {/* Right panel: Contact sidebar — desktop only. */}
+        {/* Right panel: Contact sidebar — desktop only. Must have
+            min-h-0 + h-full so the inner notes list can scroll. */}
         {isDesktop && (
-          <div className="shrink-0">
+          <div className="flex h-full min-h-0 w-72 shrink-0 flex-col overflow-hidden">
             <ContactSidebar contact={activeContact} />
           </div>
         )}
