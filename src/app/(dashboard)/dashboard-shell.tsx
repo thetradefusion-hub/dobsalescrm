@@ -7,6 +7,7 @@ import { useIsDesktopLayout } from "@/hooks/use-media-query";
 import { SidebarRail, SidebarDrawer } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { PushInitializer } from "@/components/layout/push-initializer";
+import { FcmForegroundListener } from "@/components/layout/fcm-foreground-listener";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { PwaInstallBanner } from "@/components/pwa/pwa-install-banner";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-dvh w-full max-w-[100dvw] overflow-hidden bg-wa-deep">
       <PushInitializer />
+      <FcmForegroundListener />
 
       {isDesktop ? (
         <div className="shrink-0">

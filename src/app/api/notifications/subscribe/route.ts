@@ -13,24 +13,26 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null)
-  if (!body || !body.endpoint || !body.keys) {
-    return NextResponse.json({ error: 'Invalid subscription body' }, { status: 400 })
+  const token = body?.fcm_token as string | undefined
+  if (!token || typeof token !== 'string') {
+    return NextResponse.json({ error: 'fcm_token is required' }, { status: 400 })
   }
 
-  const { error } = await supabase.from('push_subscriptions').upsert(
+  const deviceLabel =
+    typeof body?.device_label === 'string' ? body.device_label.slice(0, 200) : null
+
+  const { error } = await supabase.from('fcm_tokens').upsert(
     {
       user_id: user.id,
-      endpoint: body.endpoint,
-      keys: body.keys,
+      token,
+      device_label: deviceLabel,
       updated_at: new Date().toISOString(),
     },
-    {
-      onConflict: 'user_id,endpoint',
-    }
+    { onConflict: 'user_id,token' },
   )
 
   if (error) {
-    console.error('[subscribe] Error saving subscription:', error)
+    console.error('[fcm subscribe] save failed:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
@@ -49,18 +51,19 @@ export async function DELETE(request: Request) {
   }
 
   const body = await request.json().catch(() => null)
-  if (!body || !body.endpoint) {
-    return NextResponse.json({ error: 'Endpoint is required' }, { status: 400 })
+  const token = body?.fcm_token as string | undefined
+  if (!token) {
+    return NextResponse.json({ error: 'fcm_token is required' }, { status: 400 })
   }
 
   const { error } = await supabase
-    .from('push_subscriptions')
+    .from('fcm_tokens')
     .delete()
     .eq('user_id', user.id)
-    .eq('endpoint', body.endpoint)
+    .eq('token', token)
 
   if (error) {
-    console.error('[subscribe] Error deleting subscription:', error)
+    console.error('[fcm subscribe] delete failed:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 

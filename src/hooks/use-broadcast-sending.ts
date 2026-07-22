@@ -54,39 +54,9 @@ interface UseBroadcastSendingReturn {
  * Meta rate-limit buffer. 10 per batch + 1 s pause matches the spec
  * and keeps us comfortably under Meta's per-phone-number messaging
  * rate so a large broadcast never trips the upstream limiter.
- *
- * Simulation mode uses a larger batch + shorter pause (no Meta).
  */
 const SEND_BATCH_SIZE = 10;
 const SEND_BATCH_DELAY_MS = 1000;
-const SIM_SEND_BATCH_SIZE = 25;
-const SIM_SEND_BATCH_DELAY_MS = 150;
-
-function readSimulationCookie(): boolean {
-  if (typeof document === 'undefined') return false;
-  const match = document.cookie
-    .split(';')
-    .map((c) => c.trim())
-    .find((c) => c.startsWith('wacrm_wa_simulation='));
-  if (!match) return false;
-  const value = match.slice('wacrm_wa_simulation='.length);
-  return value === '1' || value === 'true';
-}
-
-/** null = unlimited real Meta sends for this broadcast */
-function readRealCapCookie(): number | null {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie
-    .split(';')
-    .map((c) => c.trim())
-    .find((c) => c.startsWith('wacrm_wa_real_cap='));
-  if (!match) return null;
-  const raw = decodeURIComponent(match.slice('wacrm_wa_real_cap='.length));
-  if (!raw) return null;
-  const n = Number.parseInt(raw, 10);
-  if (!Number.isFinite(n) || n < 0) return null;
-  return n;
-}
 
 /** `broadcast_recipients` inserts are independent of the send rate. */
 const INSERT_BATCH_SIZE = 200;
@@ -528,21 +498,9 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
 
       let failedCount = 0;
       const totalRecipients = recipients.length;
-      const fullSimulation = readSimulationCookie();
-      const realCap = readRealCapCookie();
-      // Remaining real Meta slots for this broadcast (null = unlimited).
-      let realQuotaRemaining: number | null = fullSimulation
-        ? 0
-        : realCap;
-      const anySimulation =
-        fullSimulation || (realCap !== null && realCap < totalRecipients);
-      const batchSize = anySimulation ? SIM_SEND_BATCH_SIZE : SEND_BATCH_SIZE;
-      const batchDelayMs = anySimulation
-        ? SIM_SEND_BATCH_DELAY_MS
-        : SEND_BATCH_DELAY_MS;
 
-      for (let i = 0; i < recipients.length; i += batchSize) {
-        const batch = recipients.slice(i, i + batchSize);
+      for (let i = 0; i < recipients.length; i += SEND_BATCH_SIZE) {
+        const batch = recipients.slice(i, i + SEND_BATCH_SIZE);
 
         const apiRecipients = batch
           .filter((r) => r.contact?.phone)
@@ -576,7 +534,6 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
               template_name: payload.template.name,
               template_language: payload.template.language ?? 'en_US',
               template_body: payload.template.body_text,
-              real_quota_remaining: realQuotaRemaining,
               header_media:
                 payload.headerMediaUrl &&
                 (payload.template.header_type === 'image' ||
@@ -594,18 +551,6 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
 
           if (!res.ok) {
             throw new Error(data.error || 'Broadcast API request failed');
-          }
-
-          if (
-            typeof data.real_quota_remaining === 'number' &&
-            Number.isFinite(data.real_quota_remaining)
-          ) {
-            realQuotaRemaining = Math.max(0, data.real_quota_remaining);
-          } else if (typeof data.real_sent === 'number' && realQuotaRemaining !== null) {
-            realQuotaRemaining = Math.max(
-              0,
-              realQuotaRemaining - data.real_sent,
-            );
           }
 
           const resultsByPhone = new Map<string, BroadcastApiResult>();
@@ -674,8 +619,8 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
           30 + Math.round(((i + batch.length) / totalRecipients) * 60);
         setProgress(progressPct);
 
-        if (i + batchSize < recipients.length) {
-          await sleep(batchDelayMs);
+        if (i + SEND_BATCH_SIZE < recipients.length) {
+          await sleep(SEND_BATCH_DELAY_MS);
         }
       }
 

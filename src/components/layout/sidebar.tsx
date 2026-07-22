@@ -19,6 +19,7 @@ import {
   User,
   X,
   Target,
+  BarChart3,
 } from "lucide-react";
 import {
   Avatar,
@@ -38,6 +39,7 @@ const navItems = [
   { href: "/inbox", label: "Inbox", icon: MessageSquare },
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/leads", label: "Leads", icon: Target },
+  { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/pipelines", label: "Pipelines", icon: GitBranch },
   { href: "/broadcasts", label: "Broadcasts", icon: Radio },
   { href: "/automations", label: "Automations", icon: Zap },

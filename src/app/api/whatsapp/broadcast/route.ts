@@ -1,5 +1,4 @@
-import { NextResponse, after } from 'next/server'
-import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendTemplateMessage } from '@/lib/whatsapp/meta-api'
 import { decrypt } from '@/lib/whatsapp/encryption'
@@ -16,13 +15,6 @@ import {
 } from '@/lib/rate-limit'
 import { supabaseAdmin } from '@/lib/automations/admin-client'
 import { persistBroadcastMessageToInbox } from '@/lib/broadcasts/persist-inbox'
-import {
-  resolveRealApiCap,
-  resolveWhatsAppSimulation,
-  simulateDeliveryReceipts,
-  WHATSAPP_REAL_CAP_COOKIE,
-  WHATSAPP_SIMULATION_COOKIE,
-} from '@/lib/whatsapp/simulation'
 
 interface BroadcastResult {
   phone: string
@@ -30,8 +22,6 @@ interface BroadcastResult {
   whatsapp_message_id?: string
   error?: string
   inbox_error?: string
-  /** True when this recipient was faked (not sent via Meta). */
-  simulated?: boolean
 }
 
 interface NewRecipient {
@@ -55,13 +45,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const jar = await cookies()
-    const fullSimulation = resolveWhatsAppSimulation(
-      jar.get(WHATSAPP_SIMULATION_COOKIE)?.value,
-    )
-    const settingsRealCap = resolveRealApiCap(
-      jar.get(WHATSAPP_REAL_CAP_COOKIE)?.value,
-    )
+    const limit = checkRateLimit(`broadcast:${user.id}`, RATE_LIMITS.broadcast)
+    if (!limit.success) {
+      return rateLimitResponse(limit)
+    }
 
     const body = await request.json()
     const {
@@ -72,34 +59,7 @@ export async function POST(request: Request) {
       template_params,
       header_media,
       template_body,
-      real_quota_remaining,
     } = body
-
-    // Per-batch remaining real slots from the client send loop.
-    // Full simulation → 0. Cap unset → unlimited. Else use remaining.
-    let realQuotaLeft: number | null
-    if (fullSimulation) {
-      realQuotaLeft = 0
-    } else if (
-      typeof real_quota_remaining === 'number' &&
-      Number.isFinite(real_quota_remaining)
-    ) {
-      realQuotaLeft = Math.max(0, Math.floor(real_quota_remaining))
-    } else if (settingsRealCap !== null) {
-      realQuotaLeft = settingsRealCap
-    } else {
-      realQuotaLeft = null // unlimited real Meta sends
-    }
-
-    const mayUseRealApi = realQuotaLeft === null || realQuotaLeft > 0
-
-    // Rate-limit only when this batch might hit Meta.
-    if (mayUseRealApi) {
-      const limit = checkRateLimit(`broadcast:${user.id}`, RATE_LIMITS.broadcast)
-      if (!limit.success) {
-        return rateLimitResponse(limit)
-      }
-    }
 
     let recipients: NewRecipient[]
     if (Array.isArray(newRecipients) && newRecipients.length > 0) {
@@ -135,7 +95,7 @@ export async function POST(request: Request) {
       .eq('user_id', user.id)
       .single()
 
-    if (mayUseRealApi && (configError || !config)) {
+    if (configError || !config) {
       return NextResponse.json(
         {
           error:
@@ -145,10 +105,8 @@ export async function POST(request: Request) {
       )
     }
 
-    const accessToken = config?.access_token
-      ? decrypt(config.access_token)
-      : 'simulation-token'
-    const phoneNumberId = config?.phone_number_id ?? 'simulation-phone-id'
+    const accessToken = decrypt(config.access_token)
+    const phoneNumberId = config.phone_number_id
     const admin = supabaseAdmin()
     const mediaUrl =
       header_media?.type && header_media?.link
@@ -158,9 +116,6 @@ export async function POST(request: Request) {
     const results: BroadcastResult[] = []
     let sentCount = 0
     let failedCount = 0
-    let realSent = 0
-    let simulatedSent = 0
-    const simulatedMessageIds: string[] = []
 
     for (const recipient of recipients) {
       const sanitized = sanitizePhoneForMeta(recipient.phone)
@@ -175,10 +130,6 @@ export async function POST(request: Request) {
         continue
       }
 
-      const useSimulate =
-        fullSimulation ||
-        (realQuotaLeft !== null && realQuotaLeft <= 0)
-
       const variants = phoneVariants(sanitized)
       let sentMessageId: string | null = null
       let lastError: string | null = null
@@ -192,7 +143,6 @@ export async function POST(request: Request) {
             templateName: template_name,
             language: template_language || 'en_US',
             params: recipient.params ?? [],
-            simulate: useSimulate,
             headerMedia:
               header_media?.type && header_media?.link
                 ? {
@@ -221,10 +171,8 @@ export async function POST(request: Request) {
           phone: recipient.phone,
           status: 'sent',
           whatsapp_message_id: sentMessageId,
-          simulated: useSimulate,
         }
 
-        // Resolve contact_id if not provided (phone lookup).
         let contactId = recipient.contact_id ?? null
         if (!contactId) {
           const { data: contacts } = await admin
@@ -270,13 +218,6 @@ export async function POST(request: Request) {
 
         results.push(row)
         sentCount++
-        if (useSimulate) {
-          simulatedSent++
-          simulatedMessageIds.push(sentMessageId)
-        } else {
-          realSent++
-          if (realQuotaLeft !== null) realQuotaLeft -= 1
-        }
       } else {
         console.error(
           `Failed to send broadcast to ${recipient.phone}:`,
@@ -286,24 +227,13 @@ export async function POST(request: Request) {
           phone: recipient.phone,
           status: 'failed',
           error: lastError || 'Unknown error',
-          simulated: useSimulate,
         })
         failedCount++
       }
     }
 
-    // Fake delivery ladder only for simulated recipients.
-    if (simulatedMessageIds.length > 0) {
-      const ids = [...simulatedMessageIds]
-      after(() => simulateDeliveryReceipts(admin, ids))
-    }
-
     return NextResponse.json({
       success: true,
-      simulation: fullSimulation,
-      real_sent: realSent,
-      simulated_sent: simulatedSent,
-      real_quota_remaining: realQuotaLeft,
       total: recipients.length,
       sent: sentCount,
       failed: failedCount,

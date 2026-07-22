@@ -11,17 +11,10 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card'
+import { isFirebaseClientConfigured } from '@/lib/firebase/config'
+import { requestFcmToken } from '@/lib/firebase/client'
 
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-  const rawData = window.atob(base64)
-  const outputArray = new Uint8Array(rawData.length)
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i)
-  }
-  return outputArray
-}
+const TOKEN_STORAGE_KEY = 'wacrm_fcm_token'
 
 export function PushNotificationsCard() {
   const [isSupported, setIsSupported] = useState(false)
@@ -29,75 +22,47 @@ export function PushNotificationsCard() {
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
+  const firebaseReady = isFirebaseClientConfigured()
 
   useEffect(() => {
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
-      setIsSupported(true)
+    const supported =
+      firebaseReady &&
+      typeof window !== 'undefined' &&
+      'serviceWorker' in navigator &&
+      'Notification' in window
+    setIsSupported(supported)
+    if (supported) {
       setPermission(Notification.permission)
-
-      navigator.serviceWorker.ready
-        .then((reg) => {
-          reg.pushManager
-            .getSubscription()
-            .then((sub) => {
-              setIsSubscribed(!!sub)
-              setLoading(false)
-            })
-            .catch((err) => {
-              console.error('Error getting subscription status:', err)
-              setLoading(false)
-            })
-        })
-        .catch((err) => {
-          console.error('Service worker is not ready:', err)
-          setLoading(false)
-        })
-    } else {
-      setLoading(false)
+      setIsSubscribed(!!localStorage.getItem(TOKEN_STORAGE_KEY))
     }
-  }, [])
+    setLoading(false)
+  }, [firebaseReady])
 
   const subscribe = async () => {
     setActionLoading(true)
     try {
-      const permissionResult = await Notification.requestPermission()
-      setPermission(permissionResult)
-
-      if (permissionResult !== 'granted') {
-        toast.error('Notification permission denied. Please enable it in browser settings.')
-        setActionLoading(false)
-        return
-      }
-
-      const reg = await navigator.serviceWorker.ready
-      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-
-      if (!vapidPublicKey) {
-        throw new Error('VAPID public key is missing on the client side.')
-      }
-
-      const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey)
-
-      const subscription = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey,
-      })
+      const token = await requestFcmToken()
 
       const res = await fetch('/api/notifications/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(subscription),
+        body: JSON.stringify({
+          fcm_token: token,
+          device_label: navigator.userAgent.slice(0, 200),
+        }),
       })
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}))
-        throw new Error(errData.error || 'Server rejected subscription.')
+        throw new Error(errData.error || 'Server rejected FCM token.')
       }
 
+      localStorage.setItem(TOKEN_STORAGE_KEY, token)
+      setPermission(Notification.permission)
       setIsSubscribed(true)
-      toast.success('Push notifications successfully enabled!')
+      toast.success('Push notifications enabled!')
     } catch (err: unknown) {
-      console.error('[subscribe] Failed:', err)
+      console.error('[fcm subscribe] failed:', err)
       toast.error(err instanceof Error ? err.message : 'Failed to enable notifications.')
     } finally {
       setActionLoading(false)
@@ -107,66 +72,78 @@ export function PushNotificationsCard() {
   const unsubscribe = async () => {
     setActionLoading(true)
     try {
-      const reg = await navigator.serviceWorker.ready
-      const subscription = await reg.pushManager.getSubscription()
-
-      if (subscription) {
+      const token = localStorage.getItem(TOKEN_STORAGE_KEY)
+      if (token) {
         const res = await fetch('/api/notifications/subscribe', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ endpoint: subscription.endpoint }),
+          body: JSON.stringify({ fcm_token: token }),
         })
-
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}))
-          throw new Error(errData.error || 'Server rejected subscription deletion.')
+          throw new Error(errData.error || 'Server rejected token deletion.')
         }
-
-        await subscription.unsubscribe()
       }
 
+      localStorage.removeItem(TOKEN_STORAGE_KEY)
       setIsSubscribed(false)
-      toast.success('Notifications successfully disabled.')
+      toast.success('Notifications disabled.')
     } catch (err: unknown) {
-      console.error('[unsubscribe] Failed:', err)
+      console.error('[fcm unsubscribe] failed:', err)
       toast.error(err instanceof Error ? err.message : 'Failed to disable notifications.')
     } finally {
       setActionLoading(false)
     }
   }
 
-  if (!isSupported) {
+  if (!firebaseReady) {
     return (
-      <Card className="bg-wa-panel/40 border-wa-border shadow-sm">
+      <Card className="border-wa-border bg-wa-panel/40 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-wa-text">
             <BellOff className="size-4 text-wa-muted" />
-            Push Notifications
+            Push Notifications (FCM)
           </CardTitle>
           <CardDescription className="text-wa-muted">
-            Web Push notifications are not supported by this browser.
+            Firebase Cloud Messaging is not configured yet. Add Firebase env variables
+            (see .env.local.example).
           </CardDescription>
         </CardHeader>
-        <CardContent className="text-sm text-wa-muted">
-          Please check that you are using a modern browser (Chrome, Safari, Firefox). On iOS, you must first add this app to your Home Screen.
-        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!isSupported) {
+    return (
+      <Card className="border-wa-border bg-wa-panel/40 shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-wa-text">
+            <BellOff className="size-4 text-wa-muted" />
+            Push Notifications (FCM)
+          </CardTitle>
+          <CardDescription className="text-wa-muted">
+            Notifications are not supported in this browser. On iOS, add the app to your
+            Home Screen first.
+          </CardDescription>
+        </CardHeader>
       </Card>
     )
   }
 
   return (
-    <Card className="bg-wa-panel/40 border-wa-border shadow-sm">
+    <Card className="border-wa-border bg-wa-panel/40 shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-wa-text">
           {isSubscribed ? (
-            <Bell className="size-4 text-wa-green animate-pulse" />
+            <Bell className="size-4 animate-pulse text-wa-green" />
           ) : (
             <BellOff className="size-4 text-wa-muted" />
           )}
-          Push Notifications
+          Push Notifications (FCM)
         </CardTitle>
         <CardDescription className="text-wa-muted">
-          Receive real-time alerts on your device when a customer sends a message on the WhatsApp Business API.
+          Get instant alerts on your phone or desktop when a customer sends a WhatsApp
+          message — works in the browser and installed PWA.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -180,7 +157,7 @@ export function PushNotificationsCard() {
             <div className="text-sm text-wa-text">
               Status:{' '}
               {isSubscribed ? (
-                <span className="text-wa-green font-semibold">Enabled (Active)</span>
+                <span className="font-semibold text-wa-green">Enabled</span>
               ) : (
                 <span className="text-wa-muted">Disabled</span>
               )}
@@ -188,52 +165,51 @@ export function PushNotificationsCard() {
 
             {permission === 'denied' && (
               <p className="text-xs text-red-500">
-                Notification permission is blocked in your browser. Please reset the site settings permission to re-enable alerts.
+                Notification permission is blocked. Reset site permissions in your browser
+                settings to enable alerts.
               </p>
             )}
 
-            <div>
-              {isSubscribed ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={unsubscribe}
-                  disabled={actionLoading}
-                  className="gap-2 border-red-900/40 hover:bg-red-950/20 hover:text-red-400"
-                >
-                  {actionLoading ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Disabling…
-                    </>
-                  ) : (
-                    <>
-                      <BellOff className="size-4" />
-                      Disable Notifications
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  onClick={subscribe}
-                  disabled={actionLoading || permission === 'denied'}
-                  className="gap-2 bg-wa-green hover:bg-wa-green/80 text-black font-semibold"
-                >
-                  {actionLoading ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin text-black" />
-                      Enabling…
-                    </>
-                  ) : (
-                    <>
-                      <Bell className="size-4" />
-                      Enable Notifications
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
+            {isSubscribed ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={unsubscribe}
+                disabled={actionLoading}
+                className="gap-2 border-red-900/40 hover:bg-red-950/20 hover:text-red-400"
+              >
+                {actionLoading ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Disabling…
+                  </>
+                ) : (
+                  <>
+                    <BellOff className="size-4" />
+                    Disable Notifications
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={subscribe}
+                disabled={actionLoading || permission === 'denied'}
+                className="gap-2 bg-wa-green font-semibold text-black hover:bg-wa-green/80"
+              >
+                {actionLoading ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin text-black" />
+                    Enabling…
+                  </>
+                ) : (
+                  <>
+                    <Bell className="size-4" />
+                    Enable Notifications
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         )}
       </CardContent>

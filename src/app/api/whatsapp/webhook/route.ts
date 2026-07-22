@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { decrypt, encrypt, isLegacyFormat } from '@/lib/whatsapp/encryption'
 import { getMediaUrl, downloadMedia } from '@/lib/whatsapp/meta-api'
@@ -6,6 +6,7 @@ import { normalizePhone, phonesMatch } from '@/lib/whatsapp/phone-utils'
 import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
 import { runAutomationsForTrigger } from '@/lib/automations/engine'
 import { tryGlobalAiAutoReply } from '@/lib/ai/run-reply'
+import { sendFcmNotificationsForMessage } from '@/lib/notifications/fcm'
 
 // Lazy-initialized to avoid build-time crash when env vars are missing
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -455,6 +456,16 @@ async function processMessage(
   if (convError) {
     console.error('Error updating conversation:', convError)
   }
+
+  // Push notification via FCM (non-blocking).
+  after(() =>
+    sendFcmNotificationsForMessage({
+      userId,
+      contactName: contactRecord.name || senderPhone,
+      contentText: contentText || `[${message.type}]`,
+      conversationId: conversation.id,
+    }).catch((err) => console.error('[fcm] webhook notify failed:', err)),
+  )
 
   // If this contact was a recent broadcast recipient, flag the reply
   // so the broadcast's `replied_count` advances (via the aggregate
