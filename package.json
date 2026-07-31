@@ -71,10 +71,10 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "pg": "^8.22.0",
-    "prettier": "^3.8.3",
-    "prettier-plugin-tailwindcss": "^0.7.2",
+    "prettier": "^3.9.6",
+    "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4",
     "typescript": "^6",
-    "vitest": "^4.1.6"
+    "vitest": "^4.1.10"
   }
 }
