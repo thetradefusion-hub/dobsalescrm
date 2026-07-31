@@ -31,7 +31,7 @@ export function FcmForegroundListener() {
         try {
           const n = new Notification(title, {
             body,
-            icon: '/pwa-icon',
+            icon: '/dobicon.png',
             tag: conversationId
               ? `wacrm-message-${conversationId}`
               : 'wacrm-message',

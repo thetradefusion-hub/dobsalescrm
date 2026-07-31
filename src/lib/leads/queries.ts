@@ -6,6 +6,7 @@ import type {
   Lead,
   LeadQueryOptions,
   LeadStats,
+  LeadStatusScope,
 } from './types'
 
 export const LEADS_PAGE_SIZE = 25
@@ -16,26 +17,34 @@ const LEAD_SELECT =
 export async function fetchLeadStats(
   supabase: SupabaseClient,
 ): Promise<LeadStats> {
-  const { data, error } = await supabase
-    .from('deals')
-    .select('lead_temperature, value, follow_up_at')
-    .eq('status', 'open')
+  const [{ data: openRows, error: openErr }, { data: closedRows, error: closedErr }] =
+    await Promise.all([
+      supabase
+        .from('deals')
+        .select('lead_temperature, value, follow_up_at')
+        .eq('status', 'open'),
+      supabase.from('deals').select('status, value').in('status', ['won', 'lost']),
+    ])
 
-  if (error) throw new Error(error.message)
+  if (openErr) throw new Error(openErr.message)
+  if (closedErr) throw new Error(closedErr.message)
 
   const stats: LeadStats = {
-    total: data?.length ?? 0,
+    total: openRows?.length ?? 0,
     hot: 0,
     warm: 0,
     cold: 0,
     unqualified: 0,
     pipelineValue: 0,
     overdueFollowUps: 0,
+    wonCount: 0,
+    lostCount: 0,
+    wonRevenue: 0,
   }
 
   const now = new Date()
 
-  for (const row of data ?? []) {
+  for (const row of openRows ?? []) {
     const t = row.lead_temperature
     if (t === 'hot') stats.hot++
     else if (t === 'warm') stats.warm++
@@ -49,7 +58,29 @@ export async function fetchLeadStats(
     }
   }
 
+  for (const row of closedRows ?? []) {
+    if (row.status === 'won') {
+      stats.wonCount++
+      stats.wonRevenue += Number(row.value) || 0
+    } else if (row.status === 'lost') {
+      stats.lostCount++
+    }
+  }
+
   return stats
+}
+
+function resolveStatusScope(
+  options: LeadQueryOptions,
+): LeadStatusScope | 'not_interested' {
+  // Temperature / outcome filters that imply a status win over the scope tabs.
+  if (options.filter === 'not_interested') return 'not_interested'
+  if (options.filter === 'won') return 'won'
+  if (options.filter === 'lost') return 'lost'
+  if (options.filter === 'everything') return 'all'
+  if (options.filter === 'overdue') return 'open'
+  if (options.statusScope) return options.statusScope
+  return 'open'
 }
 
 export async function fetchLeads(
@@ -59,6 +90,7 @@ export async function fetchLeads(
   const pageSize = options.pageSize ?? LEADS_PAGE_SIZE
   const from = options.page * pageSize
   const to = from + pageSize - 1
+  const statusScope = resolveStatusScope(options)
 
   let query = supabase
     .from('deals')
@@ -66,10 +98,12 @@ export async function fetchLeads(
     .order('updated_at', { ascending: false })
     .range(from, to)
 
-  if (options.filter === 'won') {
+  if (statusScope === 'won') {
     query = query.eq('status', 'won')
-  } else if (options.filter === 'lost' || options.filter === 'not_interested') {
+  } else if (statusScope === 'lost' || statusScope === 'not_interested') {
     query = query.eq('status', 'lost')
+  } else if (statusScope === 'all') {
+    // No status filter — open + won + lost
   } else {
     query = query.eq('status', 'open')
   }
@@ -94,6 +128,7 @@ export async function fetchLeads(
     query = query.is('lead_temperature', null)
   } else if (options.filter === 'overdue') {
     query = query
+      .eq('status', 'open')
       .not('follow_up_at', 'is', null)
       .lt('follow_up_at', new Date().toISOString())
   }
@@ -118,24 +153,17 @@ export async function fetchLeads(
 
   let leads = (data ?? []) as Lead[]
 
-  if (options.filter === 'not_interested') {
+  if (statusScope === 'not_interested' || options.filter === 'not_interested') {
     leads = leads.filter((l) =>
       (l.stage?.name ?? '').toLowerCase().includes('not interested'),
     )
-  } else if (options.filter === 'lost') {
+  } else if (statusScope === 'lost' && options.filter === 'lost') {
     leads = leads.filter(
       (l) => !(l.stage?.name ?? '').toLowerCase().includes('not interested'),
     )
   }
 
   if (term) {
-    const statusFilter =
-      options.filter === 'won'
-        ? 'won'
-        : options.filter === 'lost' || options.filter === 'not_interested'
-          ? 'lost'
-          : 'open'
-
     const { data: contactMatches } = await supabase
       .from('contacts')
       .select('id')
@@ -148,10 +176,17 @@ export async function fetchLeads(
       let contactQuery = supabase
         .from('deals')
         .select(LEAD_SELECT)
-        .eq('status', statusFilter)
         .in('contact_id', contactIds.slice(0, 200))
         .order('updated_at', { ascending: false })
         .range(from, to)
+
+      if (statusScope === 'won') {
+        contactQuery = contactQuery.eq('status', 'won')
+      } else if (statusScope === 'lost' || statusScope === 'not_interested') {
+        contactQuery = contactQuery.eq('status', 'lost')
+      } else if (statusScope !== 'all') {
+        contactQuery = contactQuery.eq('status', 'open')
+      }
 
       if (options.stageId) {
         contactQuery = contactQuery.eq('stage_id', options.stageId)

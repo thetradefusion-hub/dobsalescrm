@@ -22,6 +22,8 @@ interface DateRangePickerProps {
   onCustomFromChange: (value: string) => void
   onCustomToChange: (value: string) => void
   rangeLabel: string
+  /** When true, omit outer card chrome (parent already wraps). */
+  embedded?: boolean
 }
 
 export function DateRangePicker({
@@ -32,18 +34,27 @@ export function DateRangePicker({
   onCustomFromChange,
   onCustomToChange,
   rangeLabel,
+  embedded = false,
 }: DateRangePickerProps) {
   const todayKey = useMemo(() => localDayKey(startOfLocalDay()), [])
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-wa-border bg-wa-panel p-4 shadow-sm lg:rounded-xl lg:p-5">
+    <div
+      className={cn(
+        embedded
+          ? 'flex flex-col gap-3 border-t border-wa-border pt-4'
+          : 'flex flex-col gap-3 rounded-2xl border border-wa-border bg-wa-panel p-4 shadow-sm lg:rounded-xl lg:p-5',
+      )}
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-wa-green/10 text-wa-green">
-            <CalendarRange className="h-4 w-4" />
-          </div>
+          {!embedded && (
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-wa-green/10 text-wa-green">
+              <CalendarRange className="h-4 w-4" />
+            </div>
+          )}
           <div>
-            <p className="text-sm font-semibold text-wa-text">Date range</p>
+            <p className="text-sm font-semibold text-wa-text">Period</p>
             <p className="text-xs text-wa-muted">{rangeLabel}</p>
           </div>
         </div>
@@ -56,8 +67,8 @@ export function DateRangePicker({
               className={cn(
                 'rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors',
                 preset === p.id
-                  ? 'bg-wa-elevated text-wa-text shadow-sm'
-                  : 'text-wa-muted hover:text-wa-text',
+                  ? 'bg-wa-green text-white shadow-sm'
+                  : 'text-wa-muted hover:bg-wa-elevated/60 hover:text-wa-text',
               )}
             >
               {p.label}

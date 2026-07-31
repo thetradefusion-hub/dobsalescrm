@@ -1,7 +1,7 @@
 "use client"
 
 import Link from 'next/link'
-import { UserPlus, Briefcase, Radio, Zap, ChevronRight, Target } from 'lucide-react'
+import { UserPlus, Briefcase, Radio, ChevronRight, Target, ListTodo } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -20,6 +20,13 @@ const ACTIONS: Action[] = [
     href: '/leads',
     icon: Target,
     iconClass: 'bg-red-500/10 text-red-500 ring-red-500/20 dark:text-red-400',
+  },
+  {
+    label: 'Task',
+    description: 'Follow-ups & to-dos',
+    href: '/tasks',
+    icon: ListTodo,
+    iconClass: 'bg-violet-500/10 text-violet-600 ring-violet-500/20 dark:text-violet-400',
   },
   {
     label: 'Contact',
@@ -41,13 +48,6 @@ const ACTIONS: Action[] = [
     href: '/broadcasts/new',
     icon: Radio,
     iconClass: 'bg-amber-500/10 text-amber-600 ring-amber-500/20 dark:text-amber-400',
-  },
-  {
-    label: 'Automation',
-    description: 'Automate workflows',
-    href: '/automations/new',
-    icon: Zap,
-    iconClass: 'bg-wa-teal/10 text-wa-teal ring-wa-teal/20',
   },
 ]
 

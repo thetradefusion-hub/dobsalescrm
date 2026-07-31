@@ -1,8 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Download, Share, Smartphone, X } from 'lucide-react'
-import { BRAND_NAME, BRAND_SHORT_NAME } from '@/lib/brand'
+import Image from 'next/image'
+import { Download, Share, X } from 'lucide-react'
+import { BRAND_ICON, BRAND_NAME, BRAND_SHORT_NAME } from '@/lib/brand'
 import {
   dismissInstallBanner,
   isIOS,
@@ -99,8 +100,14 @@ export function PwaInstallBanner({ className }: PwaInstallBannerProps) {
         <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-wa-green via-wa-teal to-wa-read" />
 
         <div className="flex items-start gap-3 p-3.5">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-wa-green to-wa-teal shadow-md shadow-wa-green/25">
-            <Smartphone className="h-6 w-6 text-white" aria-hidden />
+          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl shadow-md shadow-black/20">
+            <Image
+              src={BRAND_ICON}
+              alt=""
+              width={48}
+              height={48}
+              className="h-full w-full object-cover"
+            />
           </div>
 
           <div className="min-w-0 flex-1 pt-0.5">

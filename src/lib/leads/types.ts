@@ -18,8 +18,14 @@ export type LeadFilter =
   | 'won'
   | 'lost'
   | 'not_interested'
+  /** Open + won + lost — full lead history. */
+  | 'everything'
+
+/** Primary status scope for the leads list (orthogonal to temperature chips). */
+export type LeadStatusScope = 'open' | 'won' | 'lost' | 'all'
 
 export interface LeadStats {
+  /** Open leads only (active pipeline). */
   total: number
   hot: number
   warm: number
@@ -27,6 +33,9 @@ export interface LeadStats {
   unqualified: number
   pipelineValue: number
   overdueFollowUps: number
+  wonCount: number
+  lostCount: number
+  wonRevenue: number
 }
 
 export interface ContactLeadSummary {
@@ -38,6 +47,8 @@ export interface ContactLeadSummary {
 
 export interface LeadQueryOptions {
   filter: LeadFilter
+  /** Overrides status derived from filter when set. */
+  statusScope?: LeadStatusScope
   search?: string
   page: number
   pageSize?: number

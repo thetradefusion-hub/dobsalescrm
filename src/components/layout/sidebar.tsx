@@ -1,10 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { BRAND_NAME } from "@/lib/brand";
+import { BRAND_ICON, BRAND_NAME } from "@/lib/brand";
+import { BrandLogo } from "@/components/brand-logo";
 import { useAuth } from "@/hooks/use-auth";
 import { useTotalUnread } from "@/hooks/use-total-unread";
 import {
@@ -20,6 +22,9 @@ import {
   X,
   Target,
   BarChart3,
+  ListTodo,
+  PanelLeftClose,
+  PanelLeft,
 } from "lucide-react";
 import {
   Avatar,
@@ -34,41 +39,149 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/inbox", label: "Inbox", icon: MessageSquare },
-  { href: "/contacts", label: "Contacts", icon: Users },
-  { href: "/leads", label: "Leads", icon: Target },
-  { href: "/reports", label: "Reports", icon: BarChart3 },
-  { href: "/pipelines", label: "Pipelines", icon: GitBranch },
-  { href: "/broadcasts", label: "Broadcasts", icon: Radio },
-  { href: "/automations", label: "Automations", icon: Zap },
+const navGroups: {
+  label: string;
+  items: { href: string; label: string; icon: typeof LayoutDashboard }[];
+}[] = [
+  {
+    label: "Overview",
+    items: [
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/reports", label: "Reports", icon: BarChart3 },
+      { href: "/leads", label: "Leads", icon: Target },
+      { href: "/tasks", label: "Tasks", icon: ListTodo },
+      { href: "/pipelines", label: "Pipelines", icon: GitBranch },
+    ],
+  },
+  {
+    label: "Engage",
+    items: [
+      { href: "/inbox", label: "Inbox", icon: MessageSquare },
+      { href: "/contacts", label: "Contacts", icon: Users },
+      { href: "/broadcasts", label: "Broadcasts", icon: Radio },
+    ],
+  },
+  {
+    label: "Ops",
+    items: [
+      { href: "/automations", label: "Automations", icon: Zap },
+    ],
+  },
 ];
 
 const bottomNavItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
+export const SIDEBAR_COLLAPSED_KEY = "wacrm_sidebar_collapsed";
+
 interface SidebarPanelProps {
   onClose?: () => void;
   showClose?: boolean;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-function SidebarPanel({ onClose, showClose = false }: SidebarPanelProps) {
+function NavLink({
+  href,
+  label,
+  icon: Icon,
+  isActive,
+  showUnreadDot,
+  totalUnread,
+  collapsed,
+  onClose,
+}: {
+  href: string
+  label: string
+  icon: typeof LayoutDashboard
+  isActive: boolean
+  showUnreadDot?: boolean
+  totalUnread?: number
+  collapsed?: boolean
+  onClose?: () => void
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClose}
+      title={collapsed ? label : undefined}
+      aria-label={collapsed ? label : undefined}
+      className={cn(
+        "flex items-center rounded-lg text-sm font-medium transition-colors",
+        collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5",
+        isActive
+          ? "bg-wa-green/10 text-wa-green"
+          : "text-wa-muted hover:bg-wa-surface hover:text-wa-text",
+      )}
+    >
+      <span className="relative shrink-0">
+        <Icon className="h-4 w-4" />
+        {showUnreadDot && collapsed && (
+          <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-wa-green" />
+        )}
+      </span>
+      {!collapsed && (
+        <>
+          <span className="flex-1 truncate">{label}</span>
+          {showUnreadDot && (
+            <span
+              aria-label={`${totalUnread} unread conversation${totalUnread === 1 ? "" : "s"}`}
+              className="relative flex h-2 w-2"
+            >
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-wa-green opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-wa-green" />
+            </span>
+          )}
+        </>
+      )}
+    </Link>
+  )
+}
+
+function SidebarPanel({
+  onClose,
+  showClose = false,
+  collapsed = false,
+  onToggleCollapse,
+}: SidebarPanelProps) {
   const pathname = usePathname();
   const { profile, signOut } = useAuth();
   const totalUnread = useTotalUnread();
 
   return (
     <>
-      <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-wa-border px-4">
-        <Link href="/dashboard" className="flex items-center gap-2" onClick={onClose}>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-wa-green">
-            <MessageSquare className="h-4 w-4 text-white" />
-          </div>
-          <span className="max-w-[9.5rem] text-xs font-semibold leading-snug text-wa-text">
-            {BRAND_NAME}
-          </span>
+      <div
+        className={cn(
+          "flex shrink-0 items-center border-b border-wa-border",
+          collapsed ? "h-14 justify-center px-2" : "h-16 justify-between gap-2 px-3",
+        )}
+      >
+        <Link
+          href="/dashboard"
+          className={cn(
+            "flex min-w-0 items-center",
+            collapsed ? "justify-center" : "flex-1 gap-2",
+          )}
+          onClick={onClose}
+        >
+          {collapsed ? (
+            <Image
+              src={BRAND_ICON}
+              alt={BRAND_NAME}
+              width={40}
+              height={40}
+              className="h-9 w-9 object-contain"
+              priority
+            />
+          ) : (
+            <BrandLogo
+              width={220}
+              height={48}
+              className="h-11 w-auto max-w-full"
+              priority
+            />
+          )}
         </Link>
         {showClose && (
           <button
@@ -80,46 +193,67 @@ function SidebarPanel({ onClose, showClose = false }: SidebarPanelProps) {
             <X className="h-5 w-5" />
           </button>
         )}
+        {onToggleCollapse && !showClose && !collapsed && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            aria-label="Collapse sidebar"
+            title="Collapse sidebar"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-wa-muted hover:bg-wa-surface hover:text-wa-text"
+          >
+            <PanelLeftClose className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
-        <ul className="flex flex-col gap-1">
-          {navItems.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href));
+      <nav
+        className={cn(
+          "flex-1 overflow-y-auto py-3",
+          collapsed ? "px-1.5" : "px-3",
+        )}
+      >
+        <div className="flex flex-col gap-4">
+          {navGroups.map((group) => (
+            <div key={group.label}>
+              {!collapsed && (
+                <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-wa-muted/80">
+                  {group.label}
+                </p>
+              )}
+              {collapsed && (
+                <div
+                  className="mx-auto mb-1.5 h-px w-6 bg-wa-border/80"
+                  aria-hidden
+                />
+              )}
+              <ul className="flex flex-col gap-1">
+                {group.items.map((item) => {
+                  const isActive =
+                    pathname === item.href ||
+                    (item.href !== "/dashboard" &&
+                      pathname.startsWith(item.href));
+                  const showUnreadDot =
+                    item.href === "/inbox" && totalUnread > 0 && !isActive;
 
-            const showUnreadDot =
-              item.href === "/inbox" && totalUnread > 0 && !isActive;
-
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={onClose}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-wa-green/10 text-wa-green"
-                      : "text-wa-muted hover:bg-wa-surface hover:text-wa-text",
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  <span className="flex-1">{item.label}</span>
-                  {showUnreadDot && (
-                    <span
-                      aria-label={`${totalUnread} unread conversation${totalUnread === 1 ? "" : "s"}`}
-                      className="relative flex h-2 w-2"
-                    >
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-wa-green opacity-75" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-wa-green" />
-                    </span>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+                  return (
+                    <li key={item.href}>
+                      <NavLink
+                        href={item.href}
+                        label={item.label}
+                        icon={item.icon}
+                        isActive={isActive}
+                        showUnreadDot={showUnreadDot}
+                        totalUnread={totalUnread}
+                        collapsed={collapsed}
+                        onClose={onClose}
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
 
         <div className="my-4 border-t border-wa-border" />
 
@@ -128,28 +262,47 @@ function SidebarPanel({ onClose, showClose = false }: SidebarPanelProps) {
             const isActive = pathname.startsWith(item.href);
             return (
               <li key={item.href}>
-                <Link
+                <NavLink
                   href={item.href}
-                  onClick={onClose}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-wa-green/10 text-wa-green"
-                      : "text-wa-muted hover:bg-wa-surface hover:text-wa-text",
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
+                  label={item.label}
+                  icon={item.icon}
+                  isActive={isActive}
+                  collapsed={collapsed}
+                  onClose={onClose}
+                />
               </li>
             );
           })}
         </ul>
       </nav>
 
-      <div className="shrink-0 border-t border-wa-border p-3">
+      {onToggleCollapse && !showClose && collapsed && (
+        <div className="shrink-0 border-t border-wa-border p-1.5">
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            aria-label="Expand sidebar"
+            title="Expand sidebar"
+            className="flex w-full items-center justify-center rounded-lg py-2.5 text-wa-muted hover:bg-wa-surface hover:text-wa-text"
+          >
+            <PanelLeft className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      <div
+        className={cn(
+          "shrink-0 border-t border-wa-border",
+          collapsed ? "p-1.5" : "p-3",
+        )}
+      >
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-wa-surface/60 focus:bg-wa-surface/60 focus:outline-none data-popup-open:bg-wa-surface/60">
+          <DropdownMenuTrigger
+            className={cn(
+              "flex w-full items-center rounded-lg text-left transition-colors hover:bg-wa-surface/60 focus:bg-wa-surface/60 focus:outline-none data-popup-open:bg-wa-surface/60",
+              collapsed ? "justify-center px-0 py-2" : "gap-3 px-3 py-2",
+            )}
+          >
             <Avatar className="size-8 shrink-0">
               {profile?.avatar_url ? (
                 <AvatarImage
@@ -163,14 +316,16 @@ function SidebarPanel({ onClose, showClose = false }: SidebarPanelProps) {
                   "U"}
               </AvatarFallback>
             </Avatar>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-wa-text">
-                {profile?.full_name ?? "User"}
-              </p>
-              <p className="truncate text-xs text-wa-muted">
-                {profile?.email ?? ""}
-              </p>
-            </div>
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-wa-text">
+                  {profile?.full_name ?? "User"}
+                </p>
+                <p className="truncate text-xs text-wa-muted">
+                  {profile?.email ?? ""}
+                </p>
+              </div>
+            )}
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
@@ -217,14 +372,29 @@ function SidebarPanel({ onClose, showClose = false }: SidebarPanelProps) {
   );
 }
 
-/** Fixed left rail — desktop only, always visible in the flex layout. */
-export function SidebarRail() {
+interface SidebarRailProps {
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+}
+
+/** Fixed left rail — desktop only. Supports icon-only collapsed mode. */
+export function SidebarRail({
+  collapsed = false,
+  onToggleCollapse,
+}: SidebarRailProps) {
   return (
     <aside
-      className="relative z-0 flex h-full w-60 shrink-0 flex-col border-r border-wa-border bg-wa-panel"
+      className={cn(
+        "relative z-0 flex h-full shrink-0 flex-col border-r border-wa-border bg-wa-panel transition-[width] duration-200 ease-out",
+        collapsed ? "w-[4.25rem]" : "w-64",
+      )}
       aria-label="Primary"
+      data-collapsed={collapsed || undefined}
     >
-      <SidebarPanel />
+      <SidebarPanel
+        collapsed={collapsed}
+        onToggleCollapse={onToggleCollapse}
+      />
     </aside>
   );
 }

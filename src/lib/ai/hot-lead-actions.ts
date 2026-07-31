@@ -107,7 +107,7 @@ ${q.summary}
 
 Next: ${q.recommended_next_step}
 
-— CRM BY Rakesh Nagpure`
+— Digital One Box Sales CRM`
 
   await sendDirectWhatsAppText(input.userId, input.alertPhone, text.slice(0, 4000))
 }

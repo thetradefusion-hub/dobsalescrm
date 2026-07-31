@@ -88,6 +88,66 @@ export interface LeadsDashboardBundle {
   stats: LeadStatsLike
   hotLeads: DashboardLeadRow[]
   overdueLeads: DashboardLeadRow[]
+  todayFollowUps: DashboardLeadRow[]
+}
+
+/** Period sales KPIs for the CRM home board. */
+export interface SalesKpiBundle {
+  rangeLabel: string
+  totalLeads: number
+  newLeadsInPeriod: number
+  openPipelineValue: number
+  openDealsCount: number
+  wonRevenue: number
+  wonDeals: number
+  overdueFollowUps: number
+  hotLeads: number
+  conversionRate: number | null
+}
+
+export interface TeamPerformanceRow {
+  userId: string | null
+  name: string
+  role: string
+  openLeads: number
+  wonDeals: number
+  wonRevenue: number
+  conversionPct: number | null
+}
+
+export interface SalesInsight {
+  id: string
+  severity: 'info' | 'warn' | 'urgent'
+  text: string
+  href?: string
+}
+
+export interface SalesCrmBundle {
+  kpis: SalesKpiBundle
+  /** Primary pipeline stages only (fixes multi-pipeline duplicates). */
+  funnelStages: PipelineStageSlice[]
+  /** Open-deal value by contact tag (service proxy). */
+  revenueByService: BreakdownDonutData
+  /** Open-lead count by contact tag (source proxy). */
+  leadSources: BreakdownDonutData
+  todayFollowUps: DashboardLeadRow[]
+  overdueFollowUps: DashboardLeadRow[]
+  team: TeamPerformanceRow[]
+  insights: SalesInsight[]
+}
+
+export interface BreakdownSlice {
+  id: string
+  name: string
+  color: string
+  count: number
+  totalValue: number
+}
+
+export interface BreakdownDonutData {
+  slices: BreakdownSlice[]
+  totalValue: number
+  totalCount: number
 }
 
 /** Mirror of lib/leads LeadStats — kept local to avoid circular imports. */

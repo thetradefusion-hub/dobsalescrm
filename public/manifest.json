@@ -1,7 +1,7 @@
 {
-  "name": "CRM BY Rakesh Nagpure",
-  "short_name": "CRM Rakesh",
-  "description": "WhatsApp CRM — inbox, contacts, pipelines, broadcasts, and AI automations.",
+  "name": "Digital One Box Sales CRM",
+  "short_name": "Digital One Box",
+  "description": "Digital One Box Sales CRM — WhatsApp inbox, contacts, pipelines, broadcasts, and AI automations.",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
@@ -12,19 +12,19 @@
   "gcm_sender_id": "103953800507",
   "icons": [
     {
-      "src": "/apple-icon",
-      "sizes": "180x180",
+      "src": "/dobicon.png",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/pwa-icon",
+      "src": "/dobicon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/pwa-icon",
+      "src": "/dobicon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

@@ -28,8 +28,8 @@ messaging.onBackgroundMessage(function (payload) {
   var conversationId = data.conversationId || '';
   return self.registration.showNotification(title, {
     body: bodyText,
-    icon: '/pwa-icon',
-    badge: '/pwa-icon',
+    icon: '/dobicon.png',
+    badge: '/dobicon.png',
     tag: conversationId ? 'wacrm-message-' + conversationId : 'wacrm-message',
     data: Object.assign({}, data, { conversationId: conversationId }),
     vibrate: [200, 100, 200],

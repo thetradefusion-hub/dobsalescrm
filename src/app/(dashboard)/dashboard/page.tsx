@@ -4,126 +4,41 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
-  MessageSquare,
-  UserPlus,
+  Target,
   IndianRupee,
-  Send,
-  Inbox,
+  Trophy,
+  Bell,
   Flame,
+  GitBranch,
 } from 'lucide-react'
 
-import {
-  loadActivity,
-  loadConversationsSeries,
-  loadLeadsDashboard,
-  loadMetrics,
-  loadPipelineDonut,
-  loadResponseTime,
-} from '@/lib/dashboard/queries'
-import type {
-  ActivityItem,
-  ConversationsSeriesPoint,
-  DashboardLeadRow,
-  LeadStatsLike,
-  MetricsBundle,
-  PipelineDonutData,
-  ResponseTimeSummary,
-} from '@/lib/dashboard/types'
+import { loadSalesCrmBundle } from '@/lib/dashboard/queries'
+import type { SalesCrmBundle } from '@/lib/dashboard/types'
 
-import { DashboardHeader } from '@/components/dashboard/dashboard-header'
 import { MetricCard } from '@/components/dashboard/metric-card'
 import { SkeletonCard } from '@/components/dashboard/skeleton'
 import { QuickActions } from '@/components/dashboard/quick-actions'
 import { SectionHeading } from '@/components/dashboard/section-heading'
-import { ConversationsChart } from '@/components/dashboard/conversations-chart'
-import { PipelineDonut } from '@/components/dashboard/pipeline-donut'
-import { ResponseTimeChart } from '@/components/dashboard/response-time-chart'
-import { ActivityFeed } from '@/components/dashboard/activity-feed'
-import { LeadsOverview } from '@/components/dashboard/leads-overview'
+import { PipelineFunnel } from '@/components/dashboard/pipeline-funnel'
+import { BreakdownDonut } from '@/components/dashboard/breakdown-donut'
+import { FollowUpsPanel } from '@/components/dashboard/follow-ups-panel'
+import { TeamPerformance } from '@/components/dashboard/team-performance'
+import { AiInsights } from '@/components/dashboard/ai-insights'
 import { formatDealCurrency } from '@/lib/currency'
-import { useIsDesktopLayout } from '@/hooks/use-media-query'
-import { cn } from '@/lib/utils'
-
-type RangeDays = 7 | 30 | 90
 
 export default function DashboardPage() {
-  const [metrics, setMetrics] = useState<MetricsBundle | null>(null)
-  const [metricsLoading, setMetricsLoading] = useState(true)
+  const [bundle, setBundle] = useState<SalesCrmBundle | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const [range, setRange] = useState<RangeDays>(30)
-  const [series, setSeries] = useState<Record<RangeDays, ConversationsSeriesPoint[] | null>>({
-    7: null,
-    30: null,
-    90: null,
-  })
-  const [seriesLoading, setSeriesLoading] = useState(true)
-
-  const [pipeline, setPipeline] = useState<PipelineDonutData | null>(null)
-  const [pipelineLoading, setPipelineLoading] = useState(true)
-
-  const [responseTime, setResponseTime] = useState<ResponseTimeSummary | null>(null)
-  const [responseTimeLoading, setResponseTimeLoading] = useState(true)
-
-  const [activity, setActivity] = useState<ActivityItem[] | null>(null)
-  const [activityLoading, setActivityLoading] = useState(true)
-
-  const [leadStats, setLeadStats] = useState<LeadStatsLike | null>(null)
-  const [hotLeads, setHotLeads] = useState<DashboardLeadRow[]>([])
-  const [overdueLeads, setOverdueLeads] = useState<DashboardLeadRow[]>([])
-  const [leadsLoading, setLeadsLoading] = useState(true)
-
-  const [refreshing, setRefreshing] = useState(false)
-  const isDesktop = useIsDesktopLayout()
-
-  const loadAll = useCallback((isRefresh = false) => {
+  const loadAll = useCallback(() => {
     const db = createClient()
-    if (isRefresh) setRefreshing(true)
-    else {
-      setMetricsLoading(true)
-      setSeriesLoading(true)
-      setPipelineLoading(true)
-      setResponseTimeLoading(true)
-      setActivityLoading(true)
-      setLeadsLoading(true)
-    }
+    setLoading(true)
 
-    void loadMetrics(db)
-      .then((m) => setMetrics(m))
-      .catch((err) => console.error('[dashboard] metrics failed:', err))
-      .finally(() => setMetricsLoading(false))
-
-    void loadConversationsSeries(db, range)
-      .then((s) => setSeries((prev) => ({ ...prev, [range]: s })))
-      .catch((err) => console.error('[dashboard] series failed:', err))
-      .finally(() => setSeriesLoading(false))
-
-    void loadPipelineDonut(db)
-      .then((p) => setPipeline(p))
-      .catch((err) => console.error('[dashboard] pipeline failed:', err))
-      .finally(() => setPipelineLoading(false))
-
-    void loadResponseTime(db)
-      .then((r) => setResponseTime(r))
-      .catch((err) => console.error('[dashboard] response time failed:', err))
-      .finally(() => setResponseTimeLoading(false))
-
-    void loadLeadsDashboard(db)
-      .then((l) => {
-        setLeadStats(l.stats)
-        setHotLeads(l.hotLeads)
-        setOverdueLeads(l.overdueLeads)
-      })
-      .catch((err) => console.error('[dashboard] leads failed:', err))
-      .finally(() => setLeadsLoading(false))
-
-    void loadActivity(db, 50)
-      .then((a) => setActivity(a))
-      .catch((err) => console.error('[dashboard] activity failed:', err))
-      .finally(() => {
-        setActivityLoading(false)
-        if (isRefresh) setRefreshing(false)
-      })
-  }, [range])
+    void loadSalesCrmBundle(db)
+      .then((data) => setBundle(data))
+      .catch((err) => console.error('[dashboard] sales bundle failed:', err))
+      .finally(() => setLoading(false))
+  }, [])
 
   useEffect(() => {
     // Initial dashboard load — fetch once on mount.
@@ -131,166 +46,133 @@ export default function DashboardPage() {
     loadAll()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps -- initial load only
 
-  const handleRangeChange = useCallback(
-    (r: RangeDays) => {
-      setRange(r)
-      if (series[r] !== null) return
-      setSeriesLoading(true)
-      const db = createClient()
-      loadConversationsSeries(db, r)
-        .then((s) => setSeries((prev) => ({ ...prev, [r]: s })))
-        .catch((err) => console.error('[dashboard] series failed:', err))
-        .finally(() => setSeriesLoading(false))
-    },
-    [series],
-  )
-
-  const handleRefresh = useCallback(() => {
-    setSeries((prev) => ({ ...prev, [range]: null }))
-    loadAll(true)
-  }, [loadAll, range])
+  const kpis = bundle?.kpis
+  const showSkeleton = loading || !bundle
 
   return (
-    <div className="flex w-full min-w-0 flex-1 flex-col space-y-4 overflow-x-hidden pb-2 lg:space-y-5 lg:pb-0">
-      <div className={cn(!isDesktop && 'wa-mobile-shell', 'lg:bg-transparent')}>
-        <DashboardHeader onRefresh={handleRefresh} isRefreshing={refreshing} />
-
-        {!isDesktop && (
-          <div className="wa-fade-in px-4 pb-1 pt-3">
-            <Link
-              href="/inbox"
-              className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-wa-green/30 bg-gradient-to-r from-wa-green to-wa-teal p-4 shadow-lg shadow-wa-green/25 active:scale-[0.98]"
-            >
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-                <Inbox className="h-5 w-5 text-white" aria-hidden />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-white">Open Inbox</p>
-                <p className="text-xs text-white/80">Reply to WhatsApp chats</p>
-              </div>
-              <span className="rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
-                Go
-              </span>
-            </Link>
-          </div>
-        )}
-      </div>
-
+    <div className="flex w-full min-w-0 flex-1 flex-col space-y-4 overflow-x-hidden pb-2 pt-1 lg:space-y-5 lg:pb-0">
       <section className="w-full px-4 lg:px-0">
         <SectionHeading
-          title="Overview"
-          description="Key metrics across inbox, contacts, and leads"
+          title="Sales overview"
+          description="Leads, pipeline value, and wins for the current period"
         />
-        {/* Full-width grid — no horizontal side-scroll */}
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
-          {metricsLoading || !metrics ? (
-            Array.from({ length: 5 }).map((_, i) => (
-              <SkeletonCard key={i} />
-            ))
+          {showSkeleton || !kpis ? (
+            Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
           ) : (
             <>
               <MetricCard
-                title="Active Conversations"
-                value={metrics.activeConversations.current.toLocaleString()}
-                icon={MessageSquare}
-                accent="green"
-                delta={{
-                  sign: metrics.activeConversations.previous,
-                  label: deltaLabel(metrics.activeConversations.previous, 'new today vs yesterday'),
-                }}
-              />
-              <MetricCard
-                title="New Contacts Today"
-                value={metrics.newContactsToday.current.toLocaleString()}
-                icon={UserPlus}
+                title="Total Leads"
+                value={kpis.totalLeads.toLocaleString()}
+                icon={Target}
                 accent="blue"
-                delta={{
-                  sign:
-                    metrics.newContactsToday.current - metrics.newContactsToday.previous,
-                  label: deltaLabel(
-                    metrics.newContactsToday.current - metrics.newContactsToday.previous,
-                    'vs yesterday',
-                  ),
-                }}
+                subtitle={`${kpis.newLeadsInPeriod} new in period`}
               />
               <MetricCard
-                title="Hot Leads"
-                value={metrics.leadsHot.toLocaleString()}
-                icon={Flame}
-                accent="red"
-                subtitle={`${metrics.leadsTotal} open · ${metrics.leadsOverdue} overdue`}
+                title="Active Pipeline"
+                value={formatDealCurrency(kpis.openPipelineValue)}
+                icon={GitBranch}
+                accent="green"
+                subtitle={`${kpis.openDealsCount} open deal${kpis.openDealsCount === 1 ? '' : 's'}`}
               />
               <MetricCard
-                title="Open Deals Value"
-                value={formatDealCurrency(metrics.openDealsValue)}
+                title="Won Revenue"
+                value={formatDealCurrency(kpis.wonRevenue)}
                 icon={IndianRupee}
                 accent="amber"
-                subtitle={`${metrics.openDealsCount} open deal${metrics.openDealsCount === 1 ? '' : 's'}`}
+                subtitle="Closed this period"
               />
               <MetricCard
-                title="Messages Sent Today"
-                value={metrics.messagesSentToday.current.toLocaleString()}
-                icon={Send}
+                title="Won Deals"
+                value={kpis.wonDeals.toLocaleString()}
+                icon={Trophy}
                 accent="teal"
-                delta={{
-                  sign:
-                    metrics.messagesSentToday.current - metrics.messagesSentToday.previous,
-                  label: deltaLabel(
-                    metrics.messagesSentToday.current - metrics.messagesSentToday.previous,
-                    'vs yesterday',
-                  ),
-                }}
+                subtitle={
+                  kpis.conversionRate === null
+                    ? 'No closed deals yet'
+                    : `${kpis.conversionRate}% win rate`
+                }
+              />
+              <MetricCard
+                title="Overdue Follow-ups"
+                value={kpis.overdueFollowUps.toLocaleString()}
+                icon={Bell}
+                accent="red"
+                subtitle={`${kpis.hotLeads} hot lead${kpis.hotLeads === 1 ? '' : 's'}`}
               />
             </>
           )}
         </div>
       </section>
 
-      <div className="w-full px-4 lg:px-0">
-        <LeadsOverview
-          stats={leadStats}
-          hotLeads={hotLeads}
-          overdueLeads={overdueLeads}
-          loading={leadsLoading}
-        />
-      </div>
-
       <QuickActions />
 
-      <section className="w-full">
-        <div className="px-4 lg:px-0">
-          <SectionHeading
-            title="Analytics"
-            description="Conversation trends, pipeline value, and response performance"
-          />
-        </div>
-        <div className="space-y-4 px-4 lg:px-0">
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-            <div className="h-full min-w-0 xl:col-span-3">
-              <ConversationsChart
-                series={series}
-                loading={seriesLoading}
-                range={range}
-                onRangeChange={handleRangeChange}
-              />
-            </div>
-            <div className="h-full min-w-0 xl:col-span-2">
-              <PipelineDonut data={pipeline} loading={pipelineLoading} />
-            </div>
+      <section className="w-full px-4 lg:px-0">
+        <SectionHeading
+          title="Pipeline"
+          description="Stage funnel, revenue mix, and lead sources"
+        />
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+          <div className="min-w-0 xl:col-span-6">
+            <PipelineFunnel
+              stages={bundle?.funnelStages ?? []}
+              loading={showSkeleton}
+            />
           </div>
-          <ResponseTimeChart data={responseTime} loading={responseTimeLoading} />
+          <div className="min-w-0 xl:col-span-3">
+            <BreakdownDonut
+              title="Revenue Pipeline"
+              description="By contact tags (services)"
+              data={bundle?.revenueByService ?? null}
+              loading={showSkeleton}
+              mode="value"
+              emptyHint="Tag contacts with services to break down pipeline value."
+            />
+          </div>
+          <div className="min-w-0 xl:col-span-3">
+            <BreakdownDonut
+              title="Lead Sources"
+              description="By contact tags"
+              data={bundle?.leadSources ?? null}
+              loading={showSkeleton}
+              mode="count"
+              emptyHint="Tag contacts (Website, Ads, Partner…) to track sources."
+            />
+          </div>
         </div>
       </section>
 
       <section className="w-full px-4 lg:px-0">
-        <ActivityFeed items={activity} loading={activityLoading} />
+        <SectionHeading
+          title="Team & follow-ups"
+          description="Assignee performance, schedule, and pipeline signals"
+        />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+          <TeamPerformance rows={bundle?.team ?? []} loading={showSkeleton} />
+          <FollowUpsPanel
+            today={bundle?.todayFollowUps ?? []}
+            overdue={bundle?.overdueFollowUps ?? []}
+            loading={showSkeleton}
+          />
+          <AiInsights insights={bundle?.insights ?? []} loading={showSkeleton} />
+        </div>
       </section>
+
+      {/* Hot leads shortcut when present */}
+      {!showSkeleton && kpis && kpis.hotLeads > 0 && (
+        <div className="px-4 lg:px-0">
+          <Link
+            href="/leads?filter=hot"
+            className="flex items-center gap-3 rounded-2xl border border-red-500/25 bg-red-500/5 px-4 py-3 text-sm text-wa-text transition-colors hover:border-red-500/40"
+          >
+            <Flame className="h-4 w-4 shrink-0 text-red-500" aria-hidden />
+            <span className="min-w-0 flex-1">
+              <span className="font-semibold">{kpis.hotLeads} hot lead{kpis.hotLeads === 1 ? '' : 's'}</span>
+              {' '}ready for follow-up — open Leads to act.
+            </span>
+          </Link>
+        </div>
+      )}
     </div>
   )
-}
-
-function deltaLabel(delta: number, suffix: string): string {
-  if (delta === 0) return `No change ${suffix}`
-  const sign = delta > 0 ? '+' : ''
-  return `${sign}${delta.toLocaleString()} ${suffix}`
 }

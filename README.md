@@ -1,8 +1,7 @@
-# CRM BY Rakesh Nagpure
+# Digital One Box Sales CRM
 
-> WhatsApp® CRM by Rakesh Nagpure — shared inbox, contacts,
-> sales pipelines, broadcasts, and no-code automations. Fork it, brand
-> it, host it.
+> Digital One Box Sales CRM — shared inbox, contacts,
+> sales pipelines, broadcasts, and no-code automations.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-violet.svg)](./LICENSE)
 [![CI](https://github.com/ArnasDon/wacrm/actions/workflows/ci.yml/badge.svg)](https://github.com/ArnasDon/wacrm/actions/workflows/ci.yml)

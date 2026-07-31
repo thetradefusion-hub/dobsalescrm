@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import { MessageSquare, ShieldCheck, Zap } from 'lucide-react'
-import { BRAND_NAME, BRAND_DESCRIPTION } from '@/lib/brand'
+import { BRAND_DESCRIPTION } from '@/lib/brand'
+import { BrandLogo } from '@/components/brand-logo'
 import { ThemeToggle } from '@/components/theme-toggle'
 
 interface AuthShellProps {
@@ -23,12 +24,12 @@ export function AuthShell({ children }: AuthShellProps) {
           href="/login"
           className="flex min-w-0 items-center gap-2.5 rounded-md outline-none ring-wa-green/40 focus-visible:ring-2"
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-wa-green shadow-sm">
-            <MessageSquare className="h-4 w-4 text-white" aria-hidden />
-          </div>
-          <span className="truncate text-sm font-semibold leading-tight text-wa-text sm:max-w-[12rem] sm:text-base">
-            {BRAND_NAME}
-          </span>
+          <BrandLogo
+            width={200}
+            height={40}
+            className="h-9 w-auto max-w-[11rem] sm:max-w-[14rem]"
+            priority
+          />
         </Link>
         <ThemeToggle variant="labeled" className="shrink-0 shadow-sm" />
       </header>
@@ -38,7 +39,7 @@ export function AuthShell({ children }: AuthShellProps) {
           <div className="pointer-events-none absolute inset-0 wa-canvas-grid opacity-40" aria-hidden />
           <div className="relative">
             <p className="text-xs font-semibold uppercase tracking-wider text-wa-green">
-              WhatsApp CRM
+              Digital One Box Sales CRM
             </p>
             <h1 className="mt-3 max-w-sm text-2xl font-bold leading-snug text-wa-text xl:text-3xl">
               Manage leads, chats &amp; deals in one place

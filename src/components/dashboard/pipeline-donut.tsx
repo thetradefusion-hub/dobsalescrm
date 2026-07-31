@@ -19,9 +19,9 @@ export function PipelineDonut({ data, loading }: PipelineDonutProps) {
   return (
     <section className="flex h-full flex-col overflow-hidden rounded-2xl border border-wa-border bg-wa-panel shadow-sm lg:rounded-xl">
       <header className="border-b border-wa-border bg-wa-surface/30 px-4 py-3 sm:px-5 sm:py-4">
-        <h2 className="text-sm font-semibold text-wa-text">Pipeline Value</h2>
+        <h2 className="text-sm font-semibold text-wa-text">Revenue Pipeline</h2>
         <p className="mt-0.5 text-xs text-wa-muted/80">
-          Open deals by stage
+          Open deal value by stage
         </p>
       </header>
 

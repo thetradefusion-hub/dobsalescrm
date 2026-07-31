@@ -115,9 +115,19 @@ function DealTable({
 export function TopDealsTable({ rows }: { rows: ReportDealRow[] }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-wa-border bg-wa-panel shadow-sm lg:rounded-xl">
-      <header className="border-b border-wa-border bg-wa-surface/30 px-4 py-3 sm:px-5 sm:py-4">
-        <h2 className="text-sm font-semibold text-wa-text">Top New Leads</h2>
-        <p className="mt-0.5 text-xs text-wa-muted/80">Highest value leads created in range</p>
+      <header className="flex items-start justify-between gap-3 border-b border-wa-border bg-wa-surface/30 px-4 py-3 sm:px-5 sm:py-4">
+        <div>
+          <h2 className="text-sm font-semibold text-wa-text">Top New Leads</h2>
+          <p className="mt-0.5 text-xs text-wa-muted/80">
+            Highest value leads created in range
+          </p>
+        </div>
+        <Link
+          href="/leads"
+          className="shrink-0 text-xs font-medium text-wa-teal hover:underline"
+        >
+          View leads
+        </Link>
       </header>
       <div className="p-2 sm:p-4">
         <DealTable rows={rows} />
@@ -129,11 +139,19 @@ export function TopDealsTable({ rows }: { rows: ReportDealRow[] }) {
 export function RecentClosedTable({ rows }: { rows: ReportDealRow[] }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-wa-border bg-wa-panel shadow-sm lg:rounded-xl">
-      <header className="border-b border-wa-border bg-wa-surface/30 px-4 py-3 sm:px-5 sm:py-4">
-        <h2 className="text-sm font-semibold text-wa-text">Recently Closed</h2>
-        <p className="mt-0.5 text-xs text-wa-muted/80">
-          Won & lost deals closed in range (by close date)
-        </p>
+      <header className="flex items-start justify-between gap-3 border-b border-wa-border bg-wa-surface/30 px-4 py-3 sm:px-5 sm:py-4">
+        <div>
+          <h2 className="text-sm font-semibold text-wa-text">Recently Closed</h2>
+          <p className="mt-0.5 text-xs text-wa-muted/80">
+            Won & lost outcomes in this period
+          </p>
+        </div>
+        <Link
+          href="/pipelines"
+          className="shrink-0 text-xs font-medium text-wa-teal hover:underline"
+        >
+          Pipelines
+        </Link>
       </header>
       <div className="p-2 sm:p-4">
         <DealTable rows={rows} showClosedDate />

@@ -57,7 +57,7 @@ export function TemperatureBreakdown({
   return (
     <BreakdownPanel
       title="Lead Temperature"
-      subtitle="Priority mix for new leads in range"
+      subtitle="Hot / warm / cold mix for new leads in range"
       loading={loading}
       empty={empty}
       emptyTitle="No new leads in this range"

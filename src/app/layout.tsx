@@ -1,6 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import { BRAND_DESCRIPTION, BRAND_NAME, BRAND_SHORT_NAME } from "@/lib/brand";
+import {
+  BRAND_DESCRIPTION,
+  BRAND_ICON,
+  BRAND_NAME,
+  BRAND_SHORT_NAME,
+} from "@/lib/brand";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemedToaster } from "@/components/themed-toaster";
 import "./globals.css";
@@ -27,8 +32,9 @@ export const metadata: Metadata = {
     title: BRAND_SHORT_NAME,
   },
   icons: {
-    icon: [{ url: "/icon" }],
-    apple: [{ url: "/apple-icon", sizes: "180x180", type: "image/png" }],
+    icon: [{ url: BRAND_ICON, type: "image/png" }],
+    apple: [{ url: BRAND_ICON, sizes: "180x180", type: "image/png" }],
+    shortcut: [BRAND_ICON],
   },
   formatDetection: {
     email: false,

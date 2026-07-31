@@ -2,7 +2,7 @@
   "name": "wacrm",
   "version": "0.1.0",
   "private": true,
-  "description": "CRM BY Rakesh Nagpure — WhatsApp CRM on Next.js and Supabase: inbox, contacts, pipelines, broadcasts, and automations.",
+  "description": "Digital One Box Sales CRM — WhatsApp CRM on Next.js and Supabase: inbox, contacts, pipelines, broadcasts, and automations.",
   "license": "MIT",
   "author": "Arnas Donauskas",
   "homepage": "https://github.com/ArnasDon/wacrm",

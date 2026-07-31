@@ -43,3 +43,18 @@ export function isFollowUpOverdue(
   if (!followUpAt) return false
   return new Date(followUpAt).getTime() < now.getTime()
 }
+
+/** Due later today (same local calendar day, not yet overdue). */
+export function isFollowUpDueToday(
+  followUpAt: string | null | undefined,
+  now = new Date(),
+): boolean {
+  if (!followUpAt) return false
+  if (isFollowUpOverdue(followUpAt, now)) return false
+  const target = new Date(followUpAt)
+  return (
+    target.getFullYear() === now.getFullYear() &&
+    target.getMonth() === now.getMonth() &&
+    target.getDate() === now.getDate()
+  )
+}

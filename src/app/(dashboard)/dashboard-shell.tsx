@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { useIsDesktopLayout } from "@/hooks/use-media-query";
-import { SidebarRail, SidebarDrawer } from "@/components/layout/sidebar";
+import { SidebarRail, SidebarDrawer, SIDEBAR_COLLAPSED_KEY } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { PushInitializer } from "@/components/layout/push-initializer";
 import { FcmForegroundListener } from "@/components/layout/fcm-foreground-listener";
@@ -28,7 +28,29 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
     (isMobileAppDashboard || isInbox) && !inboxChatOpen && !isDesktop;
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+      if (stored === "1") setSidebarCollapsed(true);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const toggleSidebarCollapse = useCallback(() => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? "1" : "0");
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -56,7 +78,10 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
 
       {isDesktop ? (
         <div className="shrink-0">
-          <SidebarRail />
+          <SidebarRail
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={toggleSidebarCollapse}
+          />
         </div>
       ) : (
         <SidebarDrawer open={sidebarOpen} onClose={closeSidebar} />
