@@ -397,20 +397,20 @@ export default function LeadsPage() {
       }
 
       setLeads((current) =>
-        current.map((lead) =>
-          lead.id === leadId
-            ? {
-                ...lead,
-                stage_id: stageId,
-                stage: stage ?? lead.stage,
-                status: result.status,
-                updated_at: new Date().toISOString(),
-                ...(options && 'notes' in options
-                  ? { notes: options.notes }
-                  : {}),
-              }
-            : lead,
-        ),
+        current.map((lead) => {
+          if (lead.id !== leadId) return lead
+          const next: Lead = {
+            ...lead,
+            stage_id: stageId,
+            stage: stage ?? lead.stage,
+            status: result.status,
+            updated_at: new Date().toISOString(),
+          }
+          if (options && 'notes' in options) {
+            next.notes = options.notes ?? undefined
+          }
+          return next
+        }),
       )
       toast.success(
         options && 'notes' in options && options.notes

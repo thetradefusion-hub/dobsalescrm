@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type ComponentType } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
@@ -73,7 +73,7 @@ export interface BuilderInitial {
 
 interface StepMeta {
   label: string
-  icon: typeof Zap
+  icon: ComponentType<{ className?: string; strokeWidth?: number; title?: string }>
   /** Left-border accent color per spec. */
   border: string
 }
