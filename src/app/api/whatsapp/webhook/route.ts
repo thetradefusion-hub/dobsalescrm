@@ -371,6 +371,20 @@ async function processMessage(
   const senderPhone = normalizePhone(message.from)
   const contactName = contact.profile.name
 
+  // Meta often retries the same webhook delivery. Skip early so we do not
+  // insert duplicates or fire AI / automations twice for one customer msg.
+  if (message.id) {
+    const { data: already } = await supabaseAdmin()
+      .from('messages')
+      .select('id')
+      .eq('message_id', message.id)
+      .maybeSingle()
+    if (already) {
+      console.log('[webhook] duplicate message_id, skipping:', message.id)
+      return
+    }
+  }
+
   // Parse message content based on type
   const { contentText, replyOptionId, mediaUrl, mediaType } = await parseMessageContent(
     message,
@@ -512,12 +526,14 @@ async function processMessage(
 
   // Optional global AI auto-reply (Settings → AI). Runs after automations
   // so fixed automations fire first; skip if assigned when configured.
-  tryGlobalAiAutoReply({
+  // Must be awaited — fire-and-forget gets killed when the webhook returns
+  // 200 and Next.js tears down the request (LLM + Meta send take seconds).
+  await tryGlobalAiAutoReply({
     userId,
     contactId: contactRecord.id,
     conversationId: conversation.id,
     inboundText,
-  }).catch((err) => console.error('[ai] auto-reply failed:', err))
+  })
 }
 
 async function parseMessageContent(

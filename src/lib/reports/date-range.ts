@@ -157,6 +157,17 @@ export function resolveReportRange(input: ReportRangeInput): ResolvedReportRange
   }
 }
 
+export function defaultRangeInput(): ReportRangeInput {
+  const today = startOfLocalDay()
+  const from = new Date(today)
+  from.setDate(from.getDate() - 29)
+  return {
+    preset: '30d',
+    customFrom: localDayKey(from),
+    customTo: localDayKey(today),
+  }
+}
+
 export const REPORT_PRESETS: { id: ReportPresetId; label: string }[] = [
   { id: '7d', label: '7 days' },
   { id: '30d', label: '30 days' },

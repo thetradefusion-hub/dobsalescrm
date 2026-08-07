@@ -27,16 +27,10 @@ import { Label } from "@/components/ui/label";
 import { GitBranch, Plus, ChevronDown, Settings } from "lucide-react";
 import { toast } from "sonner";
 
-// Spec-defined seed — includes closed outcomes for lead management.
-const SPEC_DEFAULT_STAGES = [
-  { name: "New Lead", color: "#3b82f6", position: 0 },
-  { name: "Qualified", color: "#eab308", position: 1 },
-  { name: "Proposal Sent", color: "#f97316", position: 2 },
-  { name: "Negotiation", color: "#8b5cf6", position: 3 },
-  { name: "Won", color: "#22c55e", position: 4 },
-  { name: "Not Interested", color: "#94a3b8", position: 5 },
-  { name: "Lost", color: "#ef4444", position: 6 },
-];
+import { DEFAULT_LEAD_STAGES } from "@/lib/leads/pipeline-stages";
+
+// Spec-defined seed — New Lead → Followup → Hot Lead → rest.
+const SPEC_DEFAULT_STAGES = DEFAULT_LEAD_STAGES.map((s) => ({ ...s }));
 
 export default function PipelinesPage() {
   const supabase = createClient();
@@ -295,20 +289,20 @@ export default function PipelinesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-4 overflow-x-hidden sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           {/* Pipeline selector dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger
-              className="inline-flex items-center gap-2 rounded-lg border border-wa-border bg-wa-panel px-3 py-2 text-sm text-wa-text hover:bg-wa-surface transition-colors data-[popup-open]:bg-wa-surface"
+              className="inline-flex max-w-full items-center gap-2 rounded-lg border border-wa-border bg-wa-panel px-2.5 py-2 text-sm text-wa-text transition-colors hover:bg-wa-surface data-[popup-open]:bg-wa-surface sm:px-3"
             >
-              <GitBranch className="h-4 w-4 text-wa-green" />
-              <span className="font-semibold">
+              <GitBranch className="h-4 w-4 shrink-0 text-wa-green" />
+              <span className="truncate font-semibold">
                 {selectedPipeline?.name ?? "Select Pipeline"}
               </span>
-              <ChevronDown className="h-4 w-4 text-wa-muted" />
+              <ChevronDown className="h-4 w-4 shrink-0 text-wa-muted" />
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="start"
@@ -416,7 +410,7 @@ export default function PipelinesPage() {
               }}
             />
             <p className="mt-2 text-xs text-wa-muted">
-              Default stages (New Lead → Won / Not Interested / Lost) will be created automatically.
+              Default stages (New Lead → Followup → Hot Lead → … → Won / Lost) will be created automatically.
             </p>
           </div>
           <DialogFooter className="bg-wa-panel/50 border-wa-border">

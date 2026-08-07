@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { LeadTemperature } from '@/lib/ai/lead-qualification'
 import { DEFAULT_DEAL_CURRENCY } from '@/lib/currency'
+import { normalizePhone } from '@/lib/whatsapp/phone-utils'
 
 export interface CreateLeadInput {
   contactId: string
@@ -12,11 +13,53 @@ export interface CreateLeadInput {
   leadBudgetInr?: number | null
   value?: number
   notes?: string
+  assignedTo?: string | null
+  /** Acquisition source key — defaults to manual when omitted. */
+  source?: string | null
+}
+
+export interface CreateLeadFromDetailsInput {
+  name: string
+  phone: string
+  city?: string
+  email?: string
+  company?: string
+  /** Requirement / inquiry title */
+  requirement?: string
+  /** Remark / summary stored on deal.notes */
+  remark?: string
+  leadTemperature?: LeadTemperature | null
+  leadScore?: number | null
+  value?: number
+  pipelineId?: string
+  stageId?: string
+  assignedTo?: string | null
+  source?: string | null
 }
 
 export interface CreateLeadResult {
   dealId: string
   created: boolean
+  contactId: string
+}
+
+async function resolveAccountContext(
+  supabase: SupabaseClient,
+  userId: string,
+) {
+  const { data: actor } = await supabase
+    .from('profiles')
+    .select('id, account_id, role')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  const accountUserId = actor?.account_id || userId
+  const defaultAssignee =
+    actor && actor.account_id && actor.account_id !== userId
+      ? actor.id
+      : null
+
+  return { accountUserId, defaultAssignee }
 }
 
 async function resolveDefaultPipeline(
@@ -74,19 +117,98 @@ async function resolveDefaultStage(
 }
 
 /**
+ * Find contact by phone under account, or create one.
+ */
+export async function findOrCreateContact(
+  supabase: SupabaseClient,
+  accountUserId: string,
+  input: {
+    name: string
+    phone: string
+    city?: string
+    email?: string
+    company?: string
+  },
+): Promise<string> {
+  const phone = normalizePhone(input.phone)
+  if (phone.length < 7) {
+    throw new Error('Enter a valid mobile number')
+  }
+
+  const { data: existingRows } = await supabase
+    .from('contacts')
+    .select('id, phone, name, city, email, company')
+    .eq('user_id', accountUserId)
+    .limit(500)
+
+  const match = (existingRows ?? []).find(
+    (c) => normalizePhone(c.phone) === phone,
+  )
+
+  if (match) {
+    const patch: Record<string, string> = {}
+    if (input.name.trim() && input.name.trim() !== (match.name ?? '')) {
+      patch.name = input.name.trim()
+    }
+    if (input.city?.trim() && input.city.trim() !== (match.city ?? '')) {
+      patch.city = input.city.trim()
+    }
+    if (input.email?.trim() && input.email.trim() !== (match.email ?? '')) {
+      patch.email = input.email.trim()
+    }
+    if (
+      input.company?.trim() &&
+      input.company.trim() !== (match.company ?? '')
+    ) {
+      patch.company = input.company.trim()
+    }
+    if (Object.keys(patch).length > 0) {
+      await supabase.from('contacts').update(patch).eq('id', match.id)
+    }
+    return match.id
+  }
+
+  const { data: created, error } = await supabase
+    .from('contacts')
+    .insert({
+      user_id: accountUserId,
+      phone,
+      name: input.name.trim() || null,
+      city: input.city?.trim() || null,
+      email: input.email?.trim() || null,
+      company: input.company?.trim() || null,
+    })
+    .select('id')
+    .single()
+
+  if (error || !created) {
+    throw new Error(error?.message ?? 'Failed to create contact')
+  }
+  return created.id
+}
+
+/**
  * Create or return an open lead (deal) for a contact.
  * One open deal per contact — matches AI lead-sync behaviour.
+ * Uses account owner user_id when the actor is a team member (RBAC).
  */
 export async function createLeadFromContact(
   supabase: SupabaseClient,
   userId: string,
   input: CreateLeadInput,
 ): Promise<CreateLeadResult> {
+  const { accountUserId, defaultAssignee } = await resolveAccountContext(
+    supabase,
+    userId,
+  )
+  const assigneeProfileId =
+    input.assignedTo !== undefined ? input.assignedTo : defaultAssignee
+
   const { data: contact } = await supabase
     .from('contacts')
     .select('id, name')
     .eq('id', input.contactId)
-    .eq('user_id', userId)
+    .eq('user_id', accountUserId)
     .maybeSingle()
 
   if (!contact) {
@@ -96,7 +218,7 @@ export async function createLeadFromContact(
   const { data: existing } = await supabase
     .from('deals')
     .select('id')
-    .eq('user_id', userId)
+    .eq('user_id', accountUserId)
     .eq('contact_id', input.contactId)
     .eq('status', 'open')
     .order('created_at', { ascending: false })
@@ -104,12 +226,12 @@ export async function createLeadFromContact(
     .maybeSingle()
 
   if (existing) {
-    return { dealId: existing.id, created: false }
+    return { dealId: existing.id, created: false, contactId: input.contactId }
   }
 
   const pipelineId = await resolveDefaultPipeline(
     supabase,
-    userId,
+    accountUserId,
     input.pipelineId,
   )
   if (!pipelineId) {
@@ -131,7 +253,7 @@ export async function createLeadFromContact(
 
   const now = new Date().toISOString()
   const payload = {
-    user_id: userId,
+    user_id: accountUserId,
     pipeline_id: pipelineId,
     stage_id: stageId,
     contact_id: input.contactId,
@@ -144,7 +266,9 @@ export async function createLeadFromContact(
     lead_score: input.leadScore ?? null,
     lead_budget_inr: input.leadBudgetInr ?? null,
     qualified_at: input.leadTemperature ? now : null,
+    source: input.source?.trim() || 'manual',
     updated_at: now,
+    ...(assigneeProfileId ? { assigned_to: assigneeProfileId } : {}),
   }
 
   const { data: deal, error } = await supabase
@@ -157,5 +281,44 @@ export async function createLeadFromContact(
     throw new Error(error?.message ?? 'Failed to create lead')
   }
 
-  return { dealId: deal.id, created: true }
+  return { dealId: deal.id, created: true, contactId: input.contactId }
+}
+
+/**
+ * Create lead from form details: upsert contact + open deal.
+ */
+export async function createLeadFromDetails(
+  supabase: SupabaseClient,
+  userId: string,
+  input: CreateLeadFromDetailsInput,
+): Promise<CreateLeadResult> {
+  const { accountUserId } = await resolveAccountContext(supabase, userId)
+
+  if (!input.name.trim()) {
+    throw new Error('Name is required')
+  }
+  if (!normalizePhone(input.phone)) {
+    throw new Error('Mobile number is required')
+  }
+
+  const contactId = await findOrCreateContact(supabase, accountUserId, {
+    name: input.name,
+    phone: input.phone,
+    city: input.city,
+    email: input.email,
+    company: input.company,
+  })
+
+  return createLeadFromContact(supabase, userId, {
+    contactId,
+    title: input.requirement?.trim() || undefined,
+    notes: input.remark?.trim() || undefined,
+    leadTemperature: input.leadTemperature ?? null,
+    leadScore: input.leadScore ?? null,
+    value: input.value,
+    pipelineId: input.pipelineId,
+    stageId: input.stageId,
+    assignedTo: input.assignedTo,
+    source: input.source?.trim() || 'manual',
+  })
 }

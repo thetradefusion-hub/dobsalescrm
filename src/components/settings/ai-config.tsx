@@ -14,11 +14,11 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { AiProvider } from '@/types';
+import { DEFAULT_AI_SYSTEM_PROMPT } from '@/lib/ai/reply-style';
 
 const MASKED_KEY = '••••••••••••••••';
 
-const DEFAULT_PROMPT =
-  'You are a helpful WhatsApp business assistant. Reply concisely in the same language the customer uses. Be polite and professional. Read the full conversation history. Never repeat questions the customer already answered — move the conversation forward.';
+const DEFAULT_PROMPT = DEFAULT_AI_SYSTEM_PROMPT;
 
 export function AiConfig() {
   const { user, loading: authLoading } = useAuth();

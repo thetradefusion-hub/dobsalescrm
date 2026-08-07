@@ -60,6 +60,8 @@ import {
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { localDayKey } from '@/lib/dashboard/date-utils'
+import { useAuth } from '@/hooks/use-auth'
+import { hasPermission } from '@/lib/auth/permissions'
 
 const FILTERS: { key: TaskFilter; label: string }[] = [
   { key: 'all', label: 'Active' },
@@ -177,6 +179,15 @@ function StatCard({
 
 export default function TasksPage() {
   const supabase = createClient()
+  const { profile, permissions, isAdmin } = useAuth()
+  const viewAllTasks =
+    isAdmin ||
+    hasPermission(permissions, '*') ||
+    hasPermission(permissions, 'tasks.view_all')
+  const canAssignTasks =
+    isAdmin ||
+    hasPermission(permissions, '*') ||
+    hasPermission(permissions, 'tasks.assign')
 
   const [stats, setStats] = useState<TaskStats | null>(null)
   const [tasks, setTasks] = useState<Task[]>([])
@@ -196,6 +207,8 @@ export default function TasksPage() {
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
+      const forcedAssignee =
+        !viewAllTasks && profile?.id ? profile.id : assigneeFilter || undefined
       const [statsResult, listResult] = await Promise.all([
         fetchTaskStats(supabase),
         fetchTasks(supabase, {
@@ -203,7 +216,7 @@ export default function TasksPage() {
           search,
           page,
           priority: priorityFilter,
-          assigneeId: assigneeFilter || undefined,
+          assigneeId: forcedAssignee,
         }),
       ])
       setStats(statsResult)
@@ -219,7 +232,16 @@ export default function TasksPage() {
     } finally {
       setLoading(false)
     }
-  }, [supabase, filter, search, page, priorityFilter, assigneeFilter])
+  }, [
+    supabase,
+    filter,
+    search,
+    page,
+    priorityFilter,
+    assigneeFilter,
+    viewAllTasks,
+    profile?.id,
+  ])
 
   useEffect(() => {
     void refresh()
@@ -281,8 +303,8 @@ export default function TasksPage() {
   const hasPrev = page > 0
 
   return (
-    <div className="flex w-full min-w-0 flex-1 flex-col space-y-4 pb-4">
-      <div className="flex flex-col gap-3 rounded-2xl border border-wa-border bg-wa-panel p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between lg:rounded-xl lg:p-5">
+    <div className="flex w-full min-w-0 flex-1 flex-col space-y-3 overflow-x-hidden pb-4 sm:space-y-4">
+      <div className="flex flex-col gap-3 rounded-2xl border border-wa-border bg-wa-panel p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-4 lg:rounded-xl lg:p-5">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-wider text-wa-green">
             Sales CRM
@@ -393,22 +415,24 @@ export default function TasksPage() {
               </option>
             ))}
           </select>
-          <select
-            value={assigneeFilter}
-            onChange={(e) => {
-              setAssigneeFilter(e.target.value)
-              setPage(0)
-            }}
-            className="h-9 rounded-lg border border-wa-border bg-wa-surface px-2.5 text-xs text-wa-text"
-          >
-            <option value="">All assignees</option>
-            <option value="unassigned">Unassigned</option>
-            {profiles.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.full_name || p.email}
-              </option>
-            ))}
-          </select>
+          {canAssignTasks ? (
+            <select
+              value={assigneeFilter}
+              onChange={(e) => {
+                setAssigneeFilter(e.target.value)
+                setPage(0)
+              }}
+              className="h-9 rounded-lg border border-wa-border bg-wa-surface px-2.5 text-xs text-wa-text"
+            >
+              <option value="">All assignees</option>
+              <option value="unassigned">Unassigned</option>
+              {profiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.full_name || p.email}
+                </option>
+              ))}
+            </select>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap gap-1 border-t border-wa-border pt-3">

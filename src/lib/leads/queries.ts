@@ -246,21 +246,110 @@ export async function updateLeadStage(
   supabase: SupabaseClient,
   dealId: string,
   stageId: string,
-  options?: { stageName?: string },
+  options?: { stageName?: string; notes?: string | null },
 ): Promise<{ status: 'open' | 'won' | 'lost' }> {
   const status = options?.stageName
     ? dealStatusForStageName(options.stageName)
     : 'open'
 
+  const patch: {
+    stage_id: string
+    status: 'open' | 'won' | 'lost'
+    updated_at: string
+    notes?: string | null
+  } = {
+    stage_id: stageId,
+    status,
+    updated_at: new Date().toISOString(),
+  }
+
+  if (options && 'notes' in options) {
+    patch.notes = options.notes
+  }
+
   const { error } = await supabase
     .from('deals')
-    .update({
-      stage_id: stageId,
-      status,
-      updated_at: new Date().toISOString(),
-    })
+    .update(patch)
     .eq('id', dealId)
 
   if (error) throw new Error(error.message)
   return { status }
+}
+
+/** Counts of deals per stage_id for the chevron pipeline bar. */
+export async function fetchStageCounts(
+  supabase: SupabaseClient,
+  options?: { statusScope?: LeadStatusScope; pipelineId?: string },
+): Promise<Record<string, number>> {
+  const scope = options?.statusScope ?? 'open'
+
+  let query = supabase.from('deals').select('stage_id, status')
+
+  if (scope === 'open') query = query.eq('status', 'open')
+  else if (scope === 'won') query = query.eq('status', 'won')
+  else if (scope === 'lost') query = query.eq('status', 'lost')
+  // 'all' — no status filter
+
+  if (options?.pipelineId) {
+    query = query.eq('pipeline_id', options.pipelineId)
+  }
+
+  const { data, error } = await query
+  if (error) throw new Error(error.message)
+
+  const counts: Record<string, number> = {}
+  for (const row of data ?? []) {
+    if (!row.stage_id) continue
+    counts[row.stage_id] = (counts[row.stage_id] ?? 0) + 1
+  }
+  return counts
+}
+
+/** Clear or set follow-up timestamp (used by Auto Followup toggle UI). */
+export async function updateLeadFollowUp(
+  supabase: SupabaseClient,
+  dealId: string,
+  followUpAt: string | null,
+): Promise<void> {
+  const { error } = await supabase
+    .from('deals')
+    .update({
+      follow_up_at: followUpAt,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', dealId)
+  if (error) throw new Error(error.message)
+}
+
+/** Assign / unassign a lead to a Sales Executive (profiles.id). */
+export async function updateLeadAssignee(
+  supabase: SupabaseClient,
+  dealId: string,
+  assigneeProfileId: string | null,
+): Promise<void> {
+  const { error } = await supabase
+    .from('deals')
+    .update({
+      assigned_to: assigneeProfileId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', dealId)
+  if (error) throw new Error(error.message)
+}
+
+/** Bulk assign / unassign many leads at once. */
+export async function updateLeadAssigneesBulk(
+  supabase: SupabaseClient,
+  dealIds: string[],
+  assigneeProfileId: string | null,
+): Promise<void> {
+  if (dealIds.length === 0) return
+  const { error } = await supabase
+    .from('deals')
+    .update({
+      assigned_to: assigneeProfileId,
+      updated_at: new Date().toISOString(),
+    })
+    .in('id', dealIds)
+  if (error) throw new Error(error.message)
 }

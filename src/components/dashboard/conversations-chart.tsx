@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
-import { MessageSquare } from 'lucide-react'
 import type { ConversationsSeriesPoint } from '@/lib/dashboard/types'
 import { EmptyState } from './empty-state'
 import { Skeleton } from './skeleton'
 import { cn } from '@/lib/utils'
+import { WhatsAppIcon } from '@/components/icons/whatsapp-icon'
 
 type RangeDays = 7 | 30 | 90
 
@@ -80,7 +80,7 @@ export function ConversationsChart({ series, loading, range, onRangeChange }: Co
           <Skeleton className="h-[240px] w-full" />
         ) : data.every((p) => p.incoming === 0 && p.outgoing === 0) ? (
           <EmptyState
-            icon={MessageSquare}
+            icon={WhatsAppIcon}
             title="No message activity in this range"
             hint="Send or receive messages to start populating this chart."
           />

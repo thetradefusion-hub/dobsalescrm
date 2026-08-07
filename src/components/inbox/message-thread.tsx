@@ -12,8 +12,8 @@ import type {
   MessageTemplate,
   Profile,
 } from "@/types";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import {
-  MessageSquare,
   ChevronDown,
   UserPlus,
   Check,
@@ -417,7 +417,7 @@ export function MessageThread({
     return (
       <div className="flex flex-1 flex-col items-center justify-center bg-wa-deep wa-inbox-wallpaper">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-wa-panel shadow-sm">
-          <MessageSquare className="h-8 w-8 text-wa-muted" />
+          <WhatsAppIcon className="h-8 w-8 text-wa-muted" />
         </div>
         <h3 className="mt-4 text-sm font-medium text-wa-text">
           Select a conversation

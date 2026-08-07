@@ -9,7 +9,6 @@ import {
   Plus,
   Trash2,
   GripVertical,
-  MessageSquare,
   FileText,
   Tag,
   TagIcon,
@@ -27,6 +26,7 @@ import {
   ArrowDown,
   ArrowUp,
 } from "lucide-react"
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -79,7 +79,7 @@ interface StepMeta {
 }
 
 const STEP_META: Record<AutomationStepType, StepMeta> = {
-  send_message: { label: "Send Message", icon: MessageSquare, border: "border-l-wa-green" },
+  send_message: { label: "Send Message", icon: WhatsAppIcon, border: "border-l-wa-green" },
   send_interactive_menu: {
     label: "Interactive Menu",
     icon: LayoutList,

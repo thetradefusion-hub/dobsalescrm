@@ -14,7 +14,7 @@ import { PwaNotificationBanner } from "@/components/pwa/pwa-notification-banner"
 import { cn } from "@/lib/utils";
 
 function DashboardShellInner({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, permissions, isAdmin, profile } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -58,6 +58,47 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, router]);
 
+  // Client-side permission redirect after profile loads (backup to middleware).
+  useEffect(() => {
+    if (loading || !profile) return;
+    if (isAdmin || permissions.includes("*")) return;
+
+    const blocked =
+      pathname.startsWith("/reports") ||
+      pathname.startsWith("/broadcasts") ||
+      pathname.startsWith("/automations");
+
+    if (blocked) {
+      router.replace("/dashboard");
+      return;
+    }
+
+    if (pathname.startsWith("/settings")) {
+      const tab = searchParams.get("tab");
+      const canOwnWa =
+        permissions.includes("whatsapp.own_number") ||
+        permissions.includes("*");
+      if (
+        tab === "ai" ||
+        tab === "templates" ||
+        tab === "tags" ||
+        tab === "team" ||
+        tab === "roles" ||
+        (tab === "whatsapp" && !canOwnWa)
+      ) {
+        router.replace("/settings?tab=profile");
+      }
+    }
+  }, [
+    loading,
+    profile,
+    isAdmin,
+    permissions,
+    pathname,
+    searchParams,
+    router,
+  ]);
+
   if (loading) {
     return (
       <div className="flex h-dvh w-full items-center justify-center bg-wa-deep">
@@ -72,7 +113,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="flex h-dvh w-full max-w-[100dvw] overflow-hidden bg-wa-deep">
+    <div className="flex h-dvh w-full max-w-[100dvw] overflow-hidden bg-[#f8fafc] dark:bg-saas-bg">
       <PushInitializer />
       <FcmForegroundListener />
 
@@ -98,15 +139,15 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
             "overflow-y-auto",
             isInbox
               ? isDesktop
-                ? "overflow-hidden p-0"
-                : "overflow-hidden px-0 pt-0"
+                ? "overflow-hidden p-0 bg-wa-deep"
+                : "overflow-hidden px-0 pt-0 bg-wa-deep"
               : isMobileAppDashboard
                 ? isDesktop
-                  ? "w-full px-4 pt-0 xl:px-6"
+                  ? "w-full px-0 pt-0"
                   : "px-0 pt-0"
                 : isDesktop
                   ? "w-full p-4 xl:p-6"
-                  : "w-full p-4 sm:p-6",
+                  : "w-full p-3 sm:p-5",
             isInbox
               ? isDesktop
                 ? "pb-0"

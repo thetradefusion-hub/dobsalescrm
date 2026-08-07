@@ -12,6 +12,8 @@ export interface GenerateReplyInput {
   messages: ChatMessage[]
   /** LLM temperature (default 0.7). Use ~0.2 for structured extraction. */
   temperature?: number
+  /** Cap completion length (default 1024). Keep low for WhatsApp chat. */
+  maxTokens?: number
 }
 
 const OPENAI_DEFAULT = 'gpt-4o-mini'
@@ -27,10 +29,11 @@ export async function generateChatCompletion(input: GenerateReplyInput): Promise
     defaultModel(input.provider)
 
   const temperature = input.temperature ?? 0.7
+  const maxTokens = input.maxTokens ?? 1024
   if (input.provider === 'gemini') {
-    return generateGemini(input.apiKey, model, input.messages, temperature)
+    return generateGemini(input.apiKey, model, input.messages, temperature, maxTokens)
   }
-  return generateOpenAI(input.apiKey, model, input.messages, temperature)
+  return generateOpenAI(input.apiKey, model, input.messages, temperature, maxTokens)
 }
 
 async function generateOpenAI(
@@ -38,6 +41,7 @@ async function generateOpenAI(
   model: string,
   messages: ChatMessage[],
   temperature: number,
+  maxTokens: number,
 ): Promise<string> {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -49,7 +53,7 @@ async function generateOpenAI(
       model,
       messages,
       temperature,
-      max_tokens: 1024,
+      max_tokens: maxTokens,
     }),
   })
 
@@ -72,6 +76,7 @@ async function generateGemini(
   model: string,
   messages: ChatMessage[],
   temperature: number,
+  maxTokens: number,
 ): Promise<string> {
   const systemParts = messages.filter((m) => m.role === 'system').map((m) => m.content)
   const systemInstruction =
@@ -94,7 +99,7 @@ async function generateGemini(
       contents,
       generationConfig: {
         temperature,
-        maxOutputTokens: 1024,
+        maxOutputTokens: maxTokens,
       },
     }),
   })

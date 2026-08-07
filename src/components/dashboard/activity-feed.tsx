@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import {
-  MessageSquare,
   UserPlus,
   Briefcase,
   Radio,
@@ -15,6 +14,7 @@ import type { ActivityItem, ActivityKind } from '@/lib/dashboard/types'
 import { cn } from '@/lib/utils'
 import { EmptyState } from './empty-state'
 import { Skeleton } from './skeleton'
+import { WhatsAppIcon } from '@/components/icons/whatsapp-icon'
 
 interface ActivityFeedProps {
   items: ActivityItem[] | null
@@ -32,8 +32,8 @@ interface KindTheme {
 
 const KIND_THEME: Record<ActivityKind, KindTheme & { label: string }> = {
   message: {
-    icon: MessageSquare,
-    badge: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
+    icon: WhatsAppIcon,
+    badge: 'bg-wa-green/10 text-wa-green',
     label: 'Message',
   },
   contact: {

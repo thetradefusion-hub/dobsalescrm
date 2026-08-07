@@ -146,6 +146,7 @@ export async function syncLeadFromAiConversation(
           contact_id: input.contactId,
           currency: DEFAULT_DEAL_CURRENCY,
           status: 'open',
+          source: 'whatsapp',
           ...dealPayload,
         })
         .select('id')

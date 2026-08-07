@@ -1,17 +1,18 @@
 'use client'
 
 import Link from 'next/link'
-import { MessageSquare, ShieldCheck, Zap } from 'lucide-react'
+import { ShieldCheck, Zap } from 'lucide-react'
 import { BRAND_DESCRIPTION } from '@/lib/brand'
 import { BrandLogo } from '@/components/brand-logo'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { WhatsAppIcon } from '@/components/icons/whatsapp-icon'
 
 interface AuthShellProps {
   children: React.ReactNode
 }
 
 const HIGHLIGHTS = [
-  { icon: MessageSquare, text: 'WhatsApp inbox & team replies' },
+  { icon: WhatsAppIcon, text: 'WhatsApp inbox & team replies' },
   { icon: Zap, text: 'AI automations & lead qualification' },
   { icon: ShieldCheck, text: 'Secure, self-hosted CRM' },
 ]

@@ -3,14 +3,18 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTotalUnread } from '@/hooks/use-total-unread'
+import { useAuth } from '@/hooks/use-auth'
+import { permissionForNav } from '@/lib/auth/roles'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
-  MessageSquare,
   Megaphone,
   Users,
-  Menu
+  Menu,
+  Target,
+  type LucideIcon,
 } from 'lucide-react'
+import { WhatsAppIcon } from '@/components/icons/whatsapp-icon'
 
 interface MobileBottomNavProps {
   onOpenSidebar: () => void
@@ -20,13 +24,20 @@ interface MobileBottomNavProps {
 export function MobileBottomNav({ onOpenSidebar, className }: MobileBottomNavProps) {
   const pathname = usePathname()
   const totalUnread = useTotalUnread()
+  const { permissions } = useAuth()
 
-  const navItems = [
+  const navItems: {
+    href: string
+    label: string
+    icon: LucideIcon | typeof WhatsAppIcon
+    badge?: number
+  }[] = [
     { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
-    { href: '/inbox', label: 'Inbox', icon: MessageSquare, badge: totalUnread },
+    { href: '/inbox', label: 'Inbox', icon: WhatsAppIcon, badge: totalUnread },
+    { href: '/leads', label: 'Leads', icon: Target },
     { href: '/broadcasts', label: 'Bulk', icon: Megaphone },
     { href: '/contacts', label: 'Contacts', icon: Users },
-  ]
+  ].filter((item) => permissionForNav(item.href, permissions))
 
   return (
     <nav
@@ -62,7 +73,6 @@ export function MobileBottomNav({ onOpenSidebar, className }: MobileBottomNavPro
               <div className="relative flex h-6 w-6 items-center justify-center">
                 <item.icon
                   className={cn('h-5 w-5', isActive && 'stroke-[2.5]')}
-                  strokeWidth={isActive ? 2.5 : 2}
                 />
                 {item.badge && item.badge > 0 ? (
                   <span className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-wa-green px-1 text-[10px] font-bold text-white ring-2 ring-wa-panel">

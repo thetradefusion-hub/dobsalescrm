@@ -9,4 +9,11 @@ export const BRAND_LOGO_LIGHT = '/doblogo.png'
 export const BRAND_LOGO_DARK = '/doblogofordarktheme.png'
 /** @deprecated Prefer theme-aware BrandLogo / BRAND_LOGO_LIGHT|DARK */
 export const BRAND_LOGO = BRAND_LOGO_LIGHT
-export const BRAND_ICON = '/dobicon.png'
+/**
+ * Square app icon (cropped cube on black). Prefer sized variants under
+ * /icons/ for favicon / PWA / Apple touch — this is the default 192.
+ */
+export const BRAND_ICON = '/icons/icon-192.png'
+export const BRAND_ICON_512 = '/icons/icon-512.png'
+export const BRAND_FAVICON = '/favicon.ico'
+export const BRAND_APPLE_TOUCH = '/apple-touch-icon.png'

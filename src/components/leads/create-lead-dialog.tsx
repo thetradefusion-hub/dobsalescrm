@@ -1,10 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Contact } from '@/types'
+import type { Profile } from '@/types'
 import type { LeadTemperature } from '@/lib/ai/lead-qualification'
-import { createLeadFromContact } from '@/lib/leads/create-from-contact'
+import { createLeadFromDetails } from '@/lib/leads/create-from-contact'
 import {
   Dialog,
   DialogContent,
@@ -16,14 +16,17 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Loader2, Search } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAuth } from '@/hooks/use-auth'
+import { hasPermission } from '@/lib/auth/permissions'
+import { LEAD_SOURCES } from '@/lib/leads/sources'
 
 interface CreateLeadDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onCreated: (dealId: string) => void
-  /** Pre-select a contact when opening from contact detail. */
+  /** Optional prefill when opened from an existing contact. */
   defaultContactId?: string
 }
 
@@ -31,62 +34,57 @@ export function CreateLeadDialog({
   open,
   onOpenChange,
   onCreated,
-  defaultContactId,
 }: CreateLeadDialogProps) {
   const supabase = createClient()
+  const { isAdmin, permissions } = useAuth()
+  const canAssign =
+    isAdmin ||
+    hasPermission(permissions, '*') ||
+    hasPermission(permissions, 'leads.assign')
 
-  const [title, setTitle] = useState('')
-  const [search, setSearch] = useState('')
-  const [contacts, setContacts] = useState<Contact[]>([])
-  const [loadingContacts, setLoadingContacts] = useState(false)
-  const [selectedContactId, setSelectedContactId] = useState('')
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [city, setCity] = useState('')
+  const [email, setEmail] = useState('')
+  const [company, setCompany] = useState('')
+  const [requirement, setRequirement] = useState('')
+  const [remark, setRemark] = useState('')
+  const [source, setSource] = useState('manual')
   const [temperature, setTemperature] = useState<LeadTemperature | ''>('')
-  const [score, setScore] = useState('')
+  const [assignedTo, setAssignedTo] = useState('')
+  const [profiles, setProfiles] = useState<Profile[]>([])
   const [saving, setSaving] = useState(false)
 
-  const loadContacts = useCallback(async () => {
-    setLoadingContacts(true)
-    try {
-      let query = supabase
-        .from('contacts')
-        .select('*')
-        .order('name', { ascending: true })
-        .limit(20)
-
-      if (search.trim()) {
-        const term = `%${search.trim()}%`
-        query = query.or(`name.ilike.${term},phone.ilike.${term}`)
-      }
-
-      const { data, error } = await query
-      if (error) throw error
-      setContacts(data ?? [])
-    } catch {
-      toast.error('Failed to load contacts')
-    } finally {
-      setLoadingContacts(false)
-    }
-  }, [supabase, search])
-
   useEffect(() => {
     if (!open) return
-    setTitle('')
+    setName('')
+    setPhone('')
+    setCity('')
+    setEmail('')
+    setCompany('')
+    setRequirement('')
+    setRemark('')
+    setSource('manual')
     setTemperature('')
-    setScore('')
-    setSelectedContactId(defaultContactId ?? '')
-    setSearch('')
-    void loadContacts()
-  }, [open, defaultContactId, loadContacts])
+    setAssignedTo('')
+  }, [open])
 
   useEffect(() => {
-    if (!open) return
-    const t = setTimeout(() => void loadContacts(), 300)
-    return () => clearTimeout(t)
-  }, [search, open, loadContacts])
+    if (!open || !canAssign) return
+    void supabase
+      .from('profiles')
+      .select('*')
+      .order('full_name')
+      .then(({ data }) => setProfiles((data ?? []) as Profile[]))
+  }, [open, canAssign, supabase])
 
   async function handleCreate() {
-    if (!selectedContactId) {
-      toast.error('Select a contact')
+    if (!name.trim()) {
+      toast.error('Name is required')
+      return
+    }
+    if (!phone.trim()) {
+      toast.error('Mobile number is required')
       return
     }
 
@@ -98,22 +96,27 @@ export function CreateLeadDialog({
       const user = session?.user
       if (!user) throw new Error('Not signed in')
 
-      const parsedScore = score.trim() ? Number.parseInt(score, 10) : null
-
-      const result = await createLeadFromContact(supabase, user.id, {
-        contactId: selectedContactId,
-        title: title.trim() || undefined,
+      const result = await createLeadFromDetails(supabase, user.id, {
+        name: name.trim(),
+        phone: phone.trim(),
+        city: city.trim() || undefined,
+        email: email.trim() || undefined,
+        company: company.trim() || undefined,
+        requirement: requirement.trim() || undefined,
+        remark: remark.trim() || undefined,
+        source,
         leadTemperature: temperature || null,
-        leadScore:
-          parsedScore != null && Number.isFinite(parsedScore)
-            ? Math.min(100, Math.max(0, parsedScore))
-            : null,
+        assignedTo: canAssign
+          ? assignedTo
+            ? assignedTo
+            : null
+          : undefined,
       })
 
       if (result.created) {
         toast.success('Lead created')
       } else {
-        toast.info('This contact already has an open lead')
+        toast.info('This contact already has an open lead — opened existing')
       }
 
       onOpenChange(false)
@@ -127,127 +130,171 @@ export function CreateLeadDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-wa-border bg-wa-panel sm:max-w-md">
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-slate-200 bg-white sm:max-w-lg dark:border-saas-border dark:bg-saas-card">
         <DialogHeader>
-          <DialogTitle className="text-wa-text">Create Lead</DialogTitle>
-          <DialogDescription className="text-wa-muted">
-            Link a contact to your sales pipeline. Each contact can have one
-            open lead at a time.
+          <DialogTitle className="text-slate-900 dark:text-saas-text">
+            Add New Lead
+          </DialogTitle>
+          <DialogDescription className="text-slate-500">
+            Enter contact details, requirement, and remarks. A contact is
+            created automatically from the mobile number.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label className="text-wa-text">Contact</Label>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-wa-muted/80" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search contacts..."
-                className="border-wa-border bg-wa-surface pl-8 text-wa-text"
-              />
-            </div>
-            <div className="max-h-36 overflow-y-auto rounded-lg border border-wa-border">
-              {loadingContacts ? (
-                <div className="flex items-center justify-center py-6">
-                  <Loader2 className="size-5 animate-spin text-wa-green" />
-                </div>
-              ) : contacts.length === 0 ? (
-                <p className="py-4 text-center text-sm text-wa-muted">
-                  No contacts found
-                </p>
-              ) : (
-                contacts.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => setSelectedContactId(c.id)}
-                    className={`flex w-full flex-col px-3 py-2 text-left text-sm transition-colors hover:bg-wa-surface ${
-                      selectedContactId === c.id
-                        ? 'bg-wa-green/10 text-wa-green'
-                        : 'text-wa-text/90'
-                    }`}
-                  >
-                    <span className="font-medium">{c.name ?? 'Unknown'}</span>
-                    <span className="text-xs text-wa-muted">{c.phone}</span>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="lead-title" className="text-wa-text">
-              Title
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="lead-name">
+              Name <span className="text-rose-500">*</span>
             </Label>
             <Input
-              id="lead-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Website project inquiry"
-              className="border-wa-border bg-wa-surface text-wa-text"
+              id="lead-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Full name"
+              autoFocus
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="lead-phone">
+              Mobile number <span className="text-rose-500">*</span>
+            </Label>
+            <Input
+              id="lead-phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="9198XXXXXXXX"
+              inputMode="tel"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="lead-city">City</Label>
+            <Input
+              id="lead-city"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="e.g. Jaipur"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="lead-email">Email</Label>
+            <Input
+              id="lead-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="optional@"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="lead-company">Company</Label>
+            <Input
+              id="lead-company"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              placeholder="Optional"
+            />
+          </div>
+
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="lead-requirement">Requirement</Label>
+            <Input
+              id="lead-requirement"
+              value={requirement}
+              onChange={(e) => setRequirement(e.target.value)}
+              placeholder="e.g. WhatsApp CRM setup, Website redesign"
+            />
+          </div>
+
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="lead-remark">Remark / Summary</Label>
+            <textarea
+              id="lead-remark"
+              value={remark}
+              onChange={(e) => setRemark(e.target.value)}
+              rows={3}
+              placeholder="Call notes, source, budget, follow-up context…"
+              className="w-full resize-y rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-200 dark:border-saas-border dark:bg-saas-bg dark:text-saas-text"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="lead-source">Lead source</Label>
+            <select
+              id="lead-source"
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 text-sm"
+            >
+              {LEAD_SOURCES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="lead-temp">Priority</Label>
+            <select
+              id="lead-temp"
+              value={temperature}
+              onChange={(e) =>
+                setTemperature(e.target.value as LeadTemperature | '')
+              }
+              className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 text-sm"
+            >
+              <option value="">Unqualified</option>
+              <option value="hot">Hot</option>
+              <option value="warm">Warm</option>
+              <option value="cold">Cold</option>
+            </select>
+          </div>
+
+          {canAssign ? (
             <div className="space-y-1.5">
-              <Label htmlFor="lead-temp" className="text-wa-text">
-                Temperature
-              </Label>
+              <Label htmlFor="lead-assignee">Assign to</Label>
               <select
-                id="lead-temp"
-                value={temperature}
-                onChange={(e) =>
-                  setTemperature(e.target.value as LeadTemperature | '')
-                }
-                className="h-9 w-full rounded-md border border-wa-border bg-wa-surface px-2 text-sm text-wa-text"
+                id="lead-assignee"
+                value={assignedTo}
+                onChange={(e) => setAssignedTo(e.target.value)}
+                className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 text-sm"
               >
-                <option value="">Unqualified</option>
-                <option value="hot">Hot</option>
-                <option value="warm">Warm</option>
-                <option value="cold">Cold</option>
+                <option value="">Unassigned</option>
+                {profiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.full_name || p.email}
+                    {p.role === 'sales_executive' ? ' (SE)' : ''}
+                  </option>
+                ))}
               </select>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="lead-score" className="text-wa-text">
-                Score (0–100)
-              </Label>
-              <Input
-                id="lead-score"
-                type="number"
-                min={0}
-                max={100}
-                value={score}
-                onChange={(e) => setScore(e.target.value)}
-                placeholder="Optional"
-                className="border-wa-border bg-wa-surface text-wa-text"
-              />
-            </div>
-          </div>
+          ) : null}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-0">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={saving}
-            className="border-wa-border text-wa-text/90"
           >
             Cancel
           </Button>
           <Button
             onClick={() => void handleCreate()}
-            disabled={saving || !selectedContactId}
-            className="bg-wa-bubble-out text-wa-text hover:bg-wa-teal hover:text-white"
+            disabled={saving}
+            className="bg-sky-600 text-white hover:bg-sky-500"
           >
             {saving ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Creating…
+                Saving…
               </>
             ) : (
-              'Create Lead'
+              'Add Lead'
             )}
           </Button>
         </DialogFooter>

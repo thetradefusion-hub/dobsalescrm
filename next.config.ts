@@ -79,6 +79,11 @@ const nextConfig: NextConfig = {
    *     chunk-hash drift self-heals within ~5 min with no user-
    *     visible latency.
    *
+   *   The caching rules are production-only. In dev, Turbopack reuses
+   *   chunk filenames across recompiles, so an immutable header makes
+   *   the browser pin the first version it ever saw — edits then land
+   *   in the DOM but never in the served JS/CSS.
+   *
    *   Note: dynamic dashboard routes (/inbox, /contacts, /pipelines,
    *   /broadcasts, etc.) are server-rendered per request — Next.js
    *   and Supabase auth already prevent them from being served
@@ -92,29 +97,35 @@ const nextConfig: NextConfig = {
    * matched.
    */
   async headers() {
+    const isDev = process.env.NODE_ENV === "development";
+
     return [
-      {
-        source: "/_next/static/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
+      ...(isDev
+        ? []
+        : [
+            {
+              source: "/_next/static/:path*",
+              headers: [
+                {
+                  key: "Cache-Control",
+                  value: "public, max-age=31536000, immutable",
+                },
+              ],
+            },
+            {
+              source: "/:path*",
+              headers: [
+                {
+                  key: "Cache-Control",
+                  value:
+                    "public, max-age=0, s-maxage=300, stale-while-revalidate=86400",
+                },
+              ],
+            },
+          ]),
       {
         source: "/api/:path*",
         headers: [{ key: "Cache-Control", value: "no-store" }],
-      },
-      {
-        source: "/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value:
-              "public, max-age=0, s-maxage=300, stale-while-revalidate=86400",
-          },
-        ],
       },
       {
         // Security headers on every response, including /_next/static

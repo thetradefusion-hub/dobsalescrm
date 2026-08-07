@@ -26,15 +26,16 @@ import {
   Check,
   X,
   Trash2,
-  MessageSquare,
   IndianRupee,
   Loader2,
 } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import {
   DEFAULT_DEAL_CURRENCY,
   DEAL_CURRENCY_OPTIONS,
 } from "@/lib/currency";
 import { toast } from "sonner";
+import { LEAD_SOURCES } from "@/lib/leads/sources";
 
 interface DealFormProps {
   open: boolean;
@@ -66,6 +67,7 @@ export function DealForm({
   const [expectedCloseDate, setExpectedCloseDate] = useState("");
   const [followUpAt, setFollowUpAt] = useState("");
   const [notes, setNotes] = useState("");
+  const [source, setSource] = useState("manual");
   const [leadTemperature, setLeadTemperature] = useState<LeadTemperature | "">("");
   const [leadScore, setLeadScore] = useState("");
   const [leadBudgetInr, setLeadBudgetInr] = useState("");
@@ -101,6 +103,7 @@ export function DealForm({
         deal.follow_up_at ? new Date(deal.follow_up_at).toISOString().slice(0, 16) : "",
       );
       setNotes(deal.notes ?? "");
+      setSource(deal.source ?? "manual");
       setLeadTemperature(deal.lead_temperature ?? "");
       setLeadScore(deal.lead_score != null ? String(deal.lead_score) : "");
       setLeadBudgetInr(
@@ -116,6 +119,7 @@ export function DealForm({
       setExpectedCloseDate("");
       setFollowUpAt("");
       setNotes("");
+      setSource("manual");
       setLeadTemperature("");
       setLeadScore("");
       setLeadBudgetInr("");
@@ -190,6 +194,7 @@ export function DealForm({
       stage_id: stageId,
       assigned_to: assignedTo || null,
       notes: notes.trim() || null,
+      source: source || "manual",
       expected_close_date: expectedCloseDate || null,
       follow_up_at: followUpAt ? new Date(followUpAt).toISOString() : null,
       lead_temperature: leadTemperature || null,
@@ -320,7 +325,7 @@ export function DealForm({
                   href="/inbox"
                   className="mt-1 inline-flex items-center gap-1.5 self-start rounded-md bg-wa-green/10 px-2 py-1 text-xs text-wa-green hover:bg-wa-green/20"
                 >
-                  <MessageSquare className="h-3 w-3" />
+                  <WhatsAppIcon className="h-3 w-3" />
                   Link to Conversation
                 </Link>
               )}
@@ -402,6 +407,21 @@ export function DealForm({
                 {profiles.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.full_name || p.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label className="text-wa-text/90">Lead source</Label>
+              <select
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+                className="h-9 w-full rounded-lg border border-wa-border bg-wa-surface px-2.5 text-sm text-wa-text outline-none focus:border-wa-green"
+              >
+                {LEAD_SOURCES.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
                   </option>
                 ))}
               </select>

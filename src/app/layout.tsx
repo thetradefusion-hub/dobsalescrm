@@ -1,8 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import {
+  BRAND_APPLE_TOUCH,
   BRAND_DESCRIPTION,
+  BRAND_FAVICON,
   BRAND_ICON,
+  BRAND_ICON_512,
   BRAND_NAME,
   BRAND_SHORT_NAME,
 } from "@/lib/brand";
@@ -32,9 +35,15 @@ export const metadata: Metadata = {
     title: BRAND_SHORT_NAME,
   },
   icons: {
-    icon: [{ url: BRAND_ICON, type: "image/png" }],
-    apple: [{ url: BRAND_ICON, sizes: "180x180", type: "image/png" }],
-    shortcut: [BRAND_ICON],
+    icon: [
+      { url: BRAND_FAVICON, sizes: "32x32", type: "image/x-icon" },
+      { url: "/icons/icon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-48.png", sizes: "48x48", type: "image/png" },
+      { url: BRAND_ICON, sizes: "192x192", type: "image/png" },
+      { url: BRAND_ICON_512, sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: BRAND_APPLE_TOUCH, sizes: "180x180", type: "image/png" }],
+    shortcut: [BRAND_FAVICON],
   },
   formatDetection: {
     email: false,

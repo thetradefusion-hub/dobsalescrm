@@ -1,6 +1,6 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -61,6 +61,22 @@
   --color-wa-bubble-in: var(--wa-bubble-in);
   --color-wa-header: var(--wa-header);
   --color-wa-read: var(--wa-read);
+
+  /* Premium SaaS (dashboard chrome) — light-first */
+  --color-saas-bg: var(--saas-bg);
+  --color-saas-card: var(--saas-card);
+  --color-saas-muted: var(--saas-muted);
+  --color-saas-text: var(--saas-text);
+  --color-saas-border: var(--saas-border);
+  --color-saas-accent: var(--saas-accent);
+  --color-saas-accent-soft: var(--saas-accent-soft);
+  --color-saas-blue: var(--saas-blue);
+  --color-saas-green: var(--saas-green);
+  --color-saas-orange: var(--saas-orange);
+  --color-saas-pink: var(--saas-pink);
+  --shadow-saas-sm: var(--saas-shadow-sm);
+  --shadow-saas-md: var(--saas-shadow-md);
+  --radius-saas: var(--saas-radius);
 }
 
 /* Light — WhatsApp Web light */
@@ -119,6 +135,24 @@
   --sidebar-accent-foreground: #111b21;
   --sidebar-border: #d1d7db;
   --sidebar-ring: #25d366;
+
+  /* Enterprise SaaS light surface (dashboard / shell) */
+  --saas-bg: #f8fafc;
+  --saas-card: #ffffff;
+  --saas-muted: #64748b;
+  --saas-text: #0f172a;
+  --saas-border: #e2e8f0;
+  --saas-accent: #7c3aed;
+  --saas-accent-soft: #ede9fe;
+  --saas-blue: #3b82f6;
+  --saas-green: #10b981;
+  --saas-orange: #f59e0b;
+  --saas-pink: #ec4899;
+  --saas-shadow-sm:
+    0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --saas-shadow-md:
+    0 4px 16px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --saas-radius: 12px;
 }
 
 /* Dark — WhatsApp Web dark */
@@ -175,6 +209,21 @@
   --sidebar-accent-foreground: #e9edef;
   --sidebar-border: #313d45;
   --sidebar-ring: #25d366;
+
+  --saas-bg: #0b141a;
+  --saas-card: #111b21;
+  --saas-muted: #8696a0;
+  --saas-text: #e9edef;
+  --saas-border: #313d45;
+  --saas-accent: #a78bfa;
+  --saas-accent-soft: rgba(167, 139, 250, 0.15);
+  --saas-blue: #60a5fa;
+  --saas-green: #34d399;
+  --saas-orange: #fbbf24;
+  --saas-pink: #f472b6;
+  --saas-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --saas-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --saas-radius: 12px;
 }
 
 @layer base {
@@ -236,6 +285,62 @@
     background: color-mix(in srgb, var(--wa-panel) 88%, transparent);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
+  }
+  .saas-card {
+    background: var(--saas-card);
+    border: 1px solid var(--saas-border);
+    border-radius: var(--saas-radius);
+    box-shadow: var(--saas-shadow-sm);
+  }
+  .saas-card-hover {
+    transition:
+      box-shadow 0.2s ease,
+      border-color 0.2s ease,
+      transform 0.15s ease;
+  }
+  .saas-card-hover:hover {
+    box-shadow: var(--saas-shadow-md);
+    border-color: color-mix(
+      in srgb,
+      var(--saas-accent) 35%,
+      var(--saas-border)
+    );
+  }
+  .saas-page {
+    background: var(--saas-bg);
+    color: var(--saas-text);
+  }
+  /* Elevated surface used across dashboard widgets. */
+  .premium-panel {
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--saas-card) 100%, transparent) 0%,
+      color-mix(in srgb, var(--saas-card) 96%, var(--saas-bg)) 100%
+    );
+    border: 1px solid color-mix(in srgb, var(--saas-border) 70%, transparent);
+    border-radius: 1rem;
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.05),
+      0 12px 28px -22px rgba(15, 23, 42, 0.35);
+    transition:
+      box-shadow 0.2s ease,
+      border-color 0.2s ease,
+      transform 0.18s ease;
+  }
+  .premium-panel:hover {
+    border-color: color-mix(
+      in srgb,
+      var(--saas-accent) 22%,
+      var(--saas-border)
+    );
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.06),
+      0 18px 36px -24px rgba(76, 29, 149, 0.45);
+  }
+  .premium-hero {
+    background: linear-gradient(120deg, #312e81 0%, #5b21b6 48%, #7c3aed 100%);
+    border-radius: 1rem;
+    box-shadow: 0 18px 40px -20px rgba(76, 29, 149, 0.75);
   }
   .wa-slide-in-right {
     animation: wa-slide-in-right 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;

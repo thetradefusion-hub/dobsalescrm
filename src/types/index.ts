@@ -5,6 +5,8 @@ export interface Profile {
   email: string;
   avatar_url?: string;
   role: string;
+  account_id?: string;
+  role_id?: string | null;
   created_at: string;
 }
 
@@ -15,6 +17,7 @@ export interface Contact {
   name?: string;
   email?: string;
   company?: string;
+  city?: string;
   avatar_url?: string;
   created_at: string;
   updated_at: string;
@@ -160,6 +163,8 @@ export interface Deal {
   lead_budget_inr?: number | null;
   /** Next manual follow-up set by sales (migration 018). */
   follow_up_at?: string | null;
+  /** Acquisition source key (migration 024): manual, meta_ads, website, … */
+  source?: string | null;
   created_at: string;
   updated_at?: string;
   contact?: Contact;

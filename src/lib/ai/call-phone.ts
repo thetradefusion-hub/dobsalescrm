@@ -22,7 +22,8 @@ Rules:
 - When the customer wants to talk on call, asks for your number, or is ready for a serious discussion, share this number naturally.
 - Say they can call or WhatsApp on this number (Rakesh / team).
 - Format so WhatsApp makes it tappable (keep ${display} as-is).
-- Do not invent a different number.`
+- Do not invent a different number.
+- Do not add emojis when sharing the number.`
 }
 
 /** Ensure the business number appears in the outbound message. */
@@ -36,5 +37,5 @@ export function ensureCallPhoneInReply(reply: string, phone: string | null | und
     return body
   }
 
-  return `${body}\n\n📞 Call / WhatsApp: ${display}`
+  return `${body}\n\nCall / WhatsApp: ${display}`
 }

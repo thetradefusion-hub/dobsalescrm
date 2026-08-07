@@ -43,13 +43,20 @@ export function DealsTrendChart({ data, loading }: DealsTrendChartProps) {
     !!data && data.every((p) => p.created === 0 && p.won === 0 && p.lost === 0)
 
   return (
-    <section className="flex h-full flex-col overflow-hidden rounded-2xl border border-wa-border bg-wa-panel shadow-sm lg:rounded-xl">
-      <header className="flex flex-col gap-3 border-b border-wa-border bg-wa-surface/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
-        <div>
-          <h2 className="text-sm font-semibold text-wa-text">Lead funnel trend</h2>
-          <p className="mt-0.5 text-xs text-wa-muted/80">
-            Daily new leads, wins, and losses in this period
-          </p>
+    <section className="premium-panel flex h-full flex-col overflow-hidden">
+      <header className="flex flex-col gap-3 border-b border-slate-100 px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4 dark:border-saas-border">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-600 ring-1 ring-inset ring-violet-200/70">
+            <TrendingUp className="size-3.5" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="truncate text-[13px] font-semibold text-slate-800 dark:text-saas-text">
+              Lead funnel trend
+            </h2>
+            <p className="mt-0.5 truncate text-[11px] text-slate-400">
+              Created vs won vs lost, grouped by day
+            </p>
+          </div>
         </div>
         {!loading && data && !empty && (
           <div className="flex flex-wrap gap-2">
@@ -60,7 +67,7 @@ export function DealsTrendChart({ data, loading }: DealsTrendChartProps) {
         )}
       </header>
 
-      <div className="p-4 sm:p-5">
+      <div className="p-3 sm:p-4">
         {loading || !data ? (
           <Skeleton className="h-[280px] w-full" />
         ) : empty ? (
@@ -74,7 +81,7 @@ export function DealsTrendChart({ data, loading }: DealsTrendChartProps) {
         )}
       </div>
 
-      <footer className="flex flex-wrap items-center gap-5 border-t border-wa-border px-5 py-3 text-xs text-wa-muted">
+      <footer className="flex flex-wrap items-center gap-4 border-t border-slate-100 px-4 py-2.5 text-[11px] text-slate-400 dark:border-saas-border">
         <LegendSwatch color={COLORS.created} label="New leads" />
         <LegendSwatch color={COLORS.won} label="Won" />
         <LegendSwatch color={COLORS.lost} label="Lost" />
@@ -93,10 +100,12 @@ function StatPill({
   value: number
 }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-wa-border bg-wa-surface/50 px-2.5 py-1 text-[11px] font-medium text-wa-text">
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500 dark:border-saas-border dark:bg-saas-bg">
+      <span className="size-1.5 rounded-full" style={{ background: color }} />
       {label}
-      <span className="tabular-nums text-wa-muted">{value}</span>
+      <span className="tabular-nums text-slate-800 dark:text-saas-text">
+        {value}
+      </span>
     </span>
   )
 }
@@ -308,11 +317,11 @@ function TrendChart({
       {hovered && hover !== null && (
         <div
           className={cn(
-            'pointer-events-none absolute top-2 z-10 -translate-x-1/2 rounded-xl border border-wa-border bg-wa-panel/95 px-3 py-2 text-[11px] shadow-xl backdrop-blur-sm',
+            'pointer-events-none absolute top-2 z-10 -translate-x-1/2 rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-[11px] shadow-xl backdrop-blur-sm dark:border-saas-border dark:bg-saas-panel/95',
           )}
           style={{ left: `${hover.tooltipLeftPx}px` }}
         >
-          <div className="font-semibold text-wa-text">
+          <div className="font-semibold text-slate-800 dark:text-saas-text">
             {longDayLabel(hovered.day)}
           </div>
           <div className="mt-1.5 space-y-1">
@@ -337,11 +346,13 @@ function TooltipRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-6">
-      <span className="flex items-center gap-1.5 text-wa-muted">
-        <span className="h-2 w-2 rounded-sm" style={{ background: color }} />
+      <span className="flex items-center gap-1.5 text-slate-400">
+        <span className="size-2 rounded-sm" style={{ background: color }} />
         {label}
       </span>
-      <span className="font-semibold tabular-nums text-wa-text">{value}</span>
+      <span className="font-semibold tabular-nums text-slate-800 dark:text-saas-text">
+        {value}
+      </span>
     </div>
   )
 }

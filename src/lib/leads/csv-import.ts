@@ -1,12 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { LeadTemperature } from '@/lib/ai/lead-qualification'
 import { createLeadFromContact } from '@/lib/leads/create-from-contact'
+import { normalizeLeadSource } from '@/lib/leads/sources'
 import { normalizePhone } from '@/lib/whatsapp/phone-utils'
 
-export const LEAD_CSV_TEMPLATE = `phone,name,email,company,title,value,priority,notes,follow_up_at
-919876543210,Rahul Sharma,rahul@example.com,Acme Corp,Website redesign,150000,hot,Interested in AI chatbot,2026-08-15
-918765432109,Priya Patel,priya@example.com,Patel Traders,MLM software demo,85000,warm,Call after 5pm,
-917654321098,Amit Kumar,,Kumar Industries,New Lead,0,cold,,
+export const LEAD_CSV_TEMPLATE = `phone,name,email,company,title,value,priority,notes,source,follow_up_at
+919876543210,Rahul Sharma,rahul@example.com,Acme Corp,Website redesign,150000,hot,Interested in AI chatbot,website,2026-08-15
+918765432109,Priya Patel,priya@example.com,Patel Traders,MLM software demo,85000,warm,Call after 5pm,meta_ads,
+917654321098,Amit Kumar,,Kumar Industries,New Lead,0,cold,,,
 `
 
 export const LEAD_CSV_HEADERS = [
@@ -18,6 +19,7 @@ export const LEAD_CSV_HEADERS = [
   'value',
   'priority',
   'notes',
+  'source',
   'follow_up_at',
 ] as const
 
@@ -30,6 +32,7 @@ export interface LeadCsvRow {
   value?: number
   priority?: LeadTemperature
   notes?: string
+  source?: string
   follow_up_at?: string
   line: number
 }
@@ -100,6 +103,7 @@ export function parseLeadCsv(text: string): {
   const valueIdx = idx('value')
   const priorityIdx = idx('priority')
   const notesIdx = idx('notes')
+  const sourceIdx = idx('source')
   const followIdx = idx('follow_up_at')
 
   const rows: LeadCsvRow[] = []
@@ -123,6 +127,10 @@ export function parseLeadCsv(text: string): {
       value: Number.isFinite(valueNum) ? valueNum : 0,
       priority: priorityIdx >= 0 ? parsePriority(values[priorityIdx]) : undefined,
       notes: notesIdx >= 0 ? values[notesIdx] || undefined : undefined,
+      source:
+        sourceIdx >= 0
+          ? normalizeLeadSource(values[sourceIdx]) ?? undefined
+          : undefined,
       follow_up_at: followIdx >= 0 ? parseFollowUp(values[followIdx]) : undefined,
       line: i + 1,
     })
@@ -261,6 +269,7 @@ export async function importLeadsFromRows(
         leadTemperature: row.priority ?? null,
         value: row.value,
         notes: row.notes,
+        source: row.source || 'csv_import',
       })
 
       if (!result.created) {

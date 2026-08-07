@@ -2,9 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  Activity,
   BarChart3,
+  Gauge,
   IndianRupee,
-  Loader2,
+  LineChart,
+  Table2,
   Target,
   TrendingDown,
   TrendingUp,
@@ -12,25 +15,26 @@ import {
   UserPlus,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { formatDealCurrency } from '@/lib/currency'
-import { resolveReportRange, type ReportPresetId } from '@/lib/reports/date-range'
+import { formatDealCurrency, formatDealCurrencyShort } from '@/lib/currency'
+import {
+  defaultRangeInput,
+  resolveReportRange,
+  type ReportPresetId,
+} from '@/lib/reports/date-range'
 import { formatDeltaLabel, loadReportsBundle } from '@/lib/reports/queries'
 import type { ReportsBundle } from '@/lib/reports/types'
 import { MetricCard } from '@/components/dashboard/metric-card'
 import { BreakdownDonut } from '@/components/dashboard/breakdown-donut'
 import { SectionHeading } from '@/components/dashboard/section-heading'
 import { SkeletonCard } from '@/components/dashboard/skeleton'
-import {
-  DateRangePicker,
-  defaultRangeInput,
-} from '@/components/reports/date-range-picker'
+import { ReportsHero } from '@/components/reports/reports-hero'
+import { ConversionFunnel } from '@/components/reports/conversion-funnel'
 import { DealsTrendChart } from '@/components/reports/deals-trend-chart'
 import {
   StageBreakdown,
   TemperatureBreakdown,
 } from '@/components/reports/breakdown-panels'
 import { RecentClosedTable, TopDealsTable } from '@/components/reports/deal-tables'
-import { Button } from '@/components/ui/button'
 import type { BreakdownDonutData } from '@/lib/dashboard/types'
 
 export default function ReportsPage() {
@@ -70,72 +74,69 @@ export default function ReportsPage() {
   }, [load])
 
   const s = data?.summary
-  const pipelineDonut: BreakdownDonutData | null = data
-    ? {
-        slices: data.pipelineSnapshot.stages.map((st) => ({
-          id: st.id,
-          name: st.name,
-          color: st.color,
-          count: st.dealCount,
-          totalValue: st.totalValue,
-        })),
-        totalValue: data.pipelineSnapshot.totalValue,
-        totalCount: data.pipelineSnapshot.stages.reduce(
-          (n, st) => n + st.dealCount,
-          0,
-        ),
-      }
-    : null
+
+  const pipelineDonut: BreakdownDonutData | null = useMemo(
+    () =>
+      data
+        ? {
+            slices: data.pipelineSnapshot.stages.map((st) => ({
+              id: st.id,
+              name: st.name,
+              color: st.color,
+              count: st.dealCount,
+              totalValue: st.totalValue,
+            })),
+            totalValue: data.pipelineSnapshot.totalValue,
+            totalCount: data.pipelineSnapshot.stages.reduce(
+              (n, st) => n + st.dealCount,
+              0,
+            ),
+          }
+        : null,
+    [data],
+  )
+
+  const highlights = useMemo(
+    () => [
+      { label: 'New leads', value: String(s?.newLeads.current ?? 0) },
+      { label: 'Won deals', value: String(s?.wonDeals.current ?? 0) },
+      {
+        label: 'Revenue won',
+        value: formatDealCurrencyShort(s?.revenueWon.current ?? 0),
+      },
+      {
+        label: 'Win rate',
+        value: s?.conversionRate != null ? `${s.conversionRate}%` : '—',
+      },
+    ],
+    [s],
+  )
 
   return (
-    <div className="flex w-full min-w-0 flex-1 flex-col space-y-5 overflow-x-hidden pb-6 pt-1">
-      {/* Page toolbar */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-wa-border bg-wa-panel p-4 shadow-sm lg:rounded-xl lg:p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-wa-green">
-              Sales analytics
-            </p>
-            <h1 className="mt-0.5 text-xl font-bold tracking-tight text-wa-text sm:text-2xl">
-              Lead Reports
-            </h1>
-            <p className="mt-1 max-w-xl text-xs text-wa-muted sm:text-sm">
-              Pipeline performance, win rate, and lead quality for the selected period.
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={loading || refreshing}
-            onClick={() => void load(true)}
-            className="shrink-0 border-wa-border"
-          >
-            {refreshing ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-            ) : null}
-            Refresh
-          </Button>
-        </div>
-
-        <DateRangePicker
-          preset={preset}
-          customFrom={customFrom}
-          customTo={customTo}
-          onPresetChange={setPreset}
-          onCustomFromChange={setCustomFrom}
-          onCustomToChange={setCustomTo}
-          rangeLabel={data?.rangeLabel ?? range.label}
-          embedded
-        />
-      </div>
+    <div className="mx-auto w-full min-w-0 max-w-[1500px] space-y-3 overflow-x-hidden pb-6 sm:space-y-4">
+      <ReportsHero
+        rangeLabel={data?.rangeLabel ?? range.label}
+        preset={preset}
+        customFrom={customFrom}
+        customTo={customTo}
+        onPresetChange={setPreset}
+        onCustomFromChange={setCustomFrom}
+        onCustomToChange={setCustomTo}
+        onRefresh={() => void load(true)}
+        refreshing={refreshing}
+        loading={loading}
+        highlights={highlights}
+      />
 
       {/* KPI strip */}
       <section>
         <SectionHeading
           title="Performance summary"
-          description="Leads & revenue vs previous period"
+          description="Leads and revenue vs the previous period"
+          icon={Gauge}
+          accent="violet"
         />
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
           {loading || !s ? (
             Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
           ) : (
@@ -177,7 +178,10 @@ export default function ReportsPage() {
                 accent="amber"
                 delta={{
                   sign: Math.sign(s.revenueWon.current - s.revenueWon.previous),
-                  label: formatDeltaLabel(s.revenueWon.current, s.revenueWon.previous),
+                  label: formatDeltaLabel(
+                    s.revenueWon.current,
+                    s.revenueWon.previous,
+                  ),
                 }}
               />
               <MetricCard
@@ -191,7 +195,7 @@ export default function ReportsPage() {
                 title="Open Pipeline"
                 value={formatDealCurrency(s.openPipelineValue)}
                 icon={BarChart3}
-                accent="green"
+                accent="violet"
                 subtitle={`${s.openDealsCount} open lead${s.openDealsCount === 1 ? '' : 's'}`}
               />
               <MetricCard
@@ -208,7 +212,10 @@ export default function ReportsPage() {
                 accent="teal"
                 delta={{
                   sign: Math.sign(s.newContacts.current - s.newContacts.previous),
-                  label: formatDeltaLabel(s.newContacts.current, s.newContacts.previous),
+                  label: formatDeltaLabel(
+                    s.newContacts.current,
+                    s.newContacts.previous,
+                  ),
                 }}
               />
             </>
@@ -216,55 +223,62 @@ export default function ReportsPage() {
         </div>
       </section>
 
-      {/* Lead details — above charts */}
+      {/* Conversion, pipeline & quality */}
       <section>
         <SectionHeading
-          title="Lead details"
-          description="Highest-value new leads and recent closed outcomes"
+          title="Conversion & quality"
+          description="How leads move, where value sits, and lead mix"
+          icon={Activity}
+          accent="blue"
         />
-        <div className="grid gap-4 lg:grid-cols-2">
-          <TopDealsTable rows={data?.topDeals ?? []} />
-          <RecentClosedTable rows={data?.recentClosed ?? []} />
-        </div>
-      </section>
-
-      {/* Breakdowns */}
-      <section>
-        <SectionHeading
-          title="Pipeline & quality"
-          description="Live open pipeline and lead temperature in range"
-        />
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-4">
+          <ConversionFunnel summary={s} loading={loading} />
           <BreakdownDonut
             title="Open Pipeline"
             description="Live value by stage"
             data={pipelineDonut}
             loading={loading}
             mode="value"
+            icon={BarChart3}
+            iconAccent="bg-violet-50 text-violet-600"
             emptyHint="Create open leads to see pipeline value by stage."
           />
           <TemperatureBreakdown
             data={data?.temperatureBreakdown ?? null}
             loading={loading}
           />
-          <StageBreakdown
-            data={data?.newLeadsByStage ?? null}
-            loading={loading}
-          />
+          <StageBreakdown data={data?.newLeadsByStage ?? null} loading={loading} />
         </div>
       </section>
 
-      {/* Trend — moved below lead details */}
+      {/* Trend */}
       <section>
         <SectionHeading
           title="Lead activity"
           description="Daily new leads, wins, and losses"
+          icon={LineChart}
+          accent="green"
         />
         <DealsTrendChart data={data?.dealsTrend ?? null} loading={loading} />
       </section>
 
-      <p className="text-center text-[11px] text-wa-muted/70">
-        Win/loss uses deal close time. Open pipeline is a live snapshot, not limited to the date range.
+      {/* Lead details */}
+      <section>
+        <SectionHeading
+          title="Lead details"
+          description="Highest-value new leads and recent closed outcomes"
+          icon={Table2}
+          accent="amber"
+        />
+        <div className="grid gap-2.5 xl:grid-cols-2">
+          <TopDealsTable rows={data?.topDeals ?? []} />
+          <RecentClosedTable rows={data?.recentClosed ?? []} />
+        </div>
+      </section>
+
+      <p className="text-center text-[10px] text-slate-400">
+        Win/loss uses deal close time. Open pipeline is a live snapshot, not limited
+        to the date range.
       </p>
     </div>
   )

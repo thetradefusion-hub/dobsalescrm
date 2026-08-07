@@ -8,6 +8,8 @@ import { Search } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/hooks/use-auth";
+import { hasPermission } from "@/lib/auth/permissions";
 
 interface ConversationListProps {
   activeConversationId: string | null;
@@ -38,6 +40,11 @@ export function ConversationList({
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<ConversationStatus | "all">("all");
   const [loading, setLoading] = useState(true);
+  const { user, isAdmin, permissions } = useAuth();
+  const viewAllChats =
+    isAdmin ||
+    hasPermission(permissions, "*") ||
+    hasPermission(permissions, "whatsapp.inbox_all");
 
   const onConversationsLoadedRef = useRef(onConversationsLoaded);
   useEffect(() => {
@@ -49,10 +56,17 @@ export function ConversationList({
     let cancelled = false;
 
     (async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("conversations")
         .select("*, contact:contacts(*)")
         .order("last_message_at", { ascending: false });
+
+      // Defense in depth — RLS also scopes SE; keep UI filter aligned.
+      if (!viewAllChats && user?.id) {
+        query = query.eq("assigned_agent_id", user.id);
+      }
+
+      const { data, error } = await query;
 
       if (cancelled) return;
 
@@ -74,7 +88,7 @@ export function ConversationList({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [viewAllChats, user?.id]);
 
   const filtered = useMemo(() => {
     let result = conversations;

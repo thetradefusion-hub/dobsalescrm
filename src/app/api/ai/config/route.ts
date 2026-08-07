@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { encrypt, decrypt } from '@/lib/whatsapp/encryption'
 import { defaultModel, type AiProvider } from '@/lib/ai/providers'
+import { DEFAULT_AI_SYSTEM_PROMPT } from '@/lib/ai/reply-style'
 
-const DEFAULT_PROMPT =
-  'You are a helpful WhatsApp business assistant. Reply concisely in the same language the customer uses. Be polite and professional. Read the full conversation history. Never repeat questions the customer already answered — move the conversation forward.'
+const DEFAULT_PROMPT = DEFAULT_AI_SYSTEM_PROMPT
 
 /**
  * GET /api/ai/config — load AI settings (never returns raw API key).
